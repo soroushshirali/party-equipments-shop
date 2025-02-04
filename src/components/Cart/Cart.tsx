@@ -27,7 +27,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
         >
           <div className="flex items-center gap-2">
             <ShoppingCart size={20} />
-            <span className="font-bold">سبد خرید</span>
+            <span className="font-bold">سبد سفارش</span>
             <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-xs">
               {items.length}
             </span>
@@ -37,7 +37,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
         {isOpen && (
           <div className="max-h-96 overflow-y-auto">
             {items.length === 0 ? (
-              <p className="p-4 text-center text-gray-500">سبد خرید خالی است</p>
+              <p className="p-4 text-center text-gray-500">سبد سفارش خالی است</p>
             ) : (
               <>
                 {items.map(item => (

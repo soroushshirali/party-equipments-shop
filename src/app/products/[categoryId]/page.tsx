@@ -68,7 +68,7 @@ export default function ProductsPage() {
                   className="w-full mt-4"
                   onClick={() => addToCart(product)}
                 >
-                  افزودن به سبد خرید
+                  افزودن به سبد سفارش
                 </Button>
               </CardContent>
             </Card>
