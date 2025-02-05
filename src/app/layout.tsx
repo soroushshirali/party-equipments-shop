@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Geist, Geist_Mono, Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { Providers } from '@/components/Providers';
+import { CartProvider } from '@/contexts/CartContext';
 
 const vazir = Vazirmatn({
   subsets: ['arabic'],
@@ -35,7 +36,9 @@ export default function RootLayout({
         className={`${geistSans.variable} ${geistMono.variable} ${vazir.variable} antialiased`}
       >
         <Providers>
-          {children}
+          <CartProvider>
+            {children}
+          </CartProvider>
         </Providers>
       </body>
     </html>

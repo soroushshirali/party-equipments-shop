@@ -32,3 +32,8 @@ export interface ProductSpec {
     title: string;
     items: CategoryItem[];
   }
+  
+  export interface CategoryGroup {
+    groupTitle: string;
+    items: Category[];
+  }

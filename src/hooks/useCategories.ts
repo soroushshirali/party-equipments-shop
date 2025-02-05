@@ -1,8 +1,8 @@
 import { useState, useEffect } from 'react';
-import { Category } from '@/types/types';
+import { CategoryGroup } from '@/types/types';
 
 export function useCategories() {
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
