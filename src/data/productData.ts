@@ -1,6 +1,4 @@
-import { ProductData } from '@/types/types';
-
-export const productData: ProductData = {
+const productData = {
     "chair-hire": {
       title: "صندلی",
       products: [
@@ -200,4 +198,6 @@ export const productData: ProductData = {
       ]
     }
   };
+  
+module.exports = { productData };
   

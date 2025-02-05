@@ -5,16 +5,20 @@ import { Card, CardContent, Button } from '@mui/material';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Product } from '@/types/types';
-import { productData } from '@/data/productData';
-import { Header } from '@/components/Header/Header';
+import { Header } from '@/components/Header';
+import { useProducts } from '@/hooks/useProducts';
 
 export default function ProductsPage() {
   const params = useParams();
-  const categoryId = params.categoryId as keyof typeof productData;
+  const categoryId = params.categoryId as string;
   const [cart, setCart] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(true);
+  const { products, loading, error } = useProducts();
 
-  const products = productData[categoryId]?.products || [];
+  if (loading) return <div>Loading...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  const categoryProducts = products[categoryId]?.products || [];
 
   const addToCart = (product: Product) => {
     setCart(prevCart => {
@@ -46,10 +50,10 @@ export default function ProductsPage() {
       />
       <div className="max-w-6xl mx-auto p-6">
         <h2 className="text-2xl font-bold mb-6">
-          {productData[categoryId]?.title}
+          {products[categoryId]?.title}
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {products.map((product) => (
+          {categoryProducts.map((product) => (
             <Card key={product.id} className="overflow-hidden">
               <img 
                 src={product.image} 

@@ -1,6 +1,4 @@
-import { Category } from '@/types/types';
-
-export const categories: Category[] = [
+const categories = [
   {
     title: "میز و صندلی",
     items: [
@@ -33,3 +31,5 @@ export const categories: Category[] = [
     ]
   }
 ];
+
+module.exports = { categories };
