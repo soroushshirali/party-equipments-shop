@@ -2,7 +2,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Product } from '@/types/types';
 import { db } from '@/lib/firebase';
-import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { collection, doc, setDoc, deleteDoc, getDocs, query, where } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
 
@@ -29,9 +29,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     async function loadCart() {
+      if (!user) {
+        setCart([]);
+        return;
+      }
+
       setIsLoading(true);
       try {
-        const cartRef = collection(db, 'cart');
+        const cartRef = collection(db, `users/${user.uid}/cart`);
         const snapshot = await getDocs(cartRef);
         const cartItems = snapshot.docs.map(doc => ({ ...doc.data() as Product }));
         setCart(cartItems);
@@ -41,8 +46,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
         setIsLoading(false);
       }
     }
-    loadCart();
-  }, []);
+
+    if (!authLoading) {
+      loadCart();
+    }
+  }, [user, authLoading]);
 
   const addToCart = async (product: Product) => {
     if (!user) {
@@ -79,9 +87,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const removeFromCart = async (id: number) => {
+    if (!user) return;
+
     setLoadingItemId(id);
     try {
-      const cartRef = collection(db, 'cart');
+      const cartRef = collection(db, `users/${user.uid}/cart`);
       await deleteDoc(doc(cartRef, id.toString()));
       setCart(prev => prev.filter(item => item.id !== id));
     } finally {
@@ -90,9 +100,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
   };
 
   const updateQuantity = async (id: number, quantity: number) => {
+    if (!user) return;
+
     setLoadingItemId(id);
     try {
-      const cartRef = collection(db, 'cart');
+      const cartRef = collection(db, `users/${user.uid}/cart`);
       const item = cart.find(item => item.id === id);
       if (item) {
         await setDoc(doc(cartRef, id.toString()), {
