@@ -25,7 +25,7 @@ export interface ProductSpec {
   export interface CategoryItem {
     title: string;
     categoryId: string;
-    borderColor?: string;
+    image: string;
   }
   
   export interface Category {
@@ -34,6 +34,8 @@ export interface ProductSpec {
   }
   
   export interface CategoryGroup {
+    id?: string;
     groupTitle: string;
-    items: Category[];
+    groupBorderColor: string;
+    items: CategoryItem[];
   }

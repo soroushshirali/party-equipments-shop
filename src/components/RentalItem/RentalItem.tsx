@@ -4,10 +4,10 @@ import Link from 'next/link';
 interface RentalItemProps {
   title: string;
   categoryId: string;
-  borderColor?: string;
+  borderColor: string;
 }
 
-export const RentalItem = ({ title, categoryId, borderColor = "border-red-500" }: RentalItemProps) => (
+export const RentalItem = ({ title, categoryId, borderColor }: RentalItemProps) => (
   <div className="flex flex-col items-center p-2">
     <style>{`
       @keyframes bounce-scale {
@@ -20,18 +20,18 @@ export const RentalItem = ({ title, categoryId, borderColor = "border-red-500" }
     `}</style>
     <Link href={`/products/${categoryId}`}>
       <div
-        className={`relative w-[150px] h-[150px] md:w-[215px] md:h-[215px] rounded-full border-4 ${borderColor} 
-                    overflow-hidden mb-4 hover-bounce cursor-pointer`}
+        className={`relative w-[150px] h-[150px] md:w-[215px] md:h-[215px] rounded-full border-4 hover-bounce cursor-pointer mb-4`}
+        style={{ borderColor }}
       >
         <img
           src="/api/placeholder/215/215"
           alt={title}
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover rounded-full"
         />
       </div>
       <div
-        className={`text-center px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm border-4 ${borderColor} 
-                   min-w-20 md:min-w-24 hover-bounce cursor-pointer font-bold`}
+        className={`text-center px-3 py-1 md:px-4 md:py-2 rounded-full text-xs md:text-sm border-4 hover-bounce cursor-pointer font-bold min-w-[100px]`}
+        style={{ borderColor }}
         dir="rtl"
       >
         {title}

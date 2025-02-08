@@ -1,48 +1,36 @@
 const categories = [
   {
     groupTitle: "تجهیزات نشیمن",
+    groupBorderColor: '#FF5733',
     items: [
-      {
-        title: "میز و صندلی",
-        items: [
-          { title: "مبلمان بار", categoryId: "bar-furniture" },
-          { title: "اجاره صندلی", categoryId: "chair-hire" },
-          { title: "مبل و نیمکت", categoryId: "couch-ottoman" },
-          { title: "اجاره میز", categoryId: "table-hire" },
-        ]
-      }
+      { title: "مبلمان بار", categoryId: "bar-furniture", image: "" },
+      { title: "اجاره صندلی", categoryId: "chair-hire", image: "" },
+      { title: "مبل و نیمکت", categoryId: "couch-ottoman", image: "" },
+      { title: "اجاره میز", categoryId: "table-hire", image: "" }
     ]
   },
   {
     groupTitle: "سازه‌های موقت",
+    groupBorderColor: '#FF5733',
     items: [
-      {
-        title: "چادر، غرفه و چتر",
-        items: [
-          { title: "اجاره چادر", categoryId: "marquee-hire" },
-          { title: "اجاره غرفه", categoryId: "stall-hire" },
-          { title: "اجاره چتر", categoryId: "umbrella-hire" },
-          { title: "اجاره چادر سیار", categoryId: "popup-marquee" },
-        ]
-      }
+      { title: "اجاره چادر", categoryId: "marquee-hire", image: "" },
+      { title: "اجاره غرفه", categoryId: "stall-hire", image: "" },
+      { title: "اجاره چتر", categoryId: "umbrella-hire", image: "" },
+      { title: "اجاره چادر سیار", categoryId: "popup-marquee", image: "" }
     ]
   },
   {
     groupTitle: "تجهیزات نمایشی",
+    groupBorderColor: '#FF5733',
     items: [
-      {
-        title: "صوت، نور و تصویر",
-        items: [
-          { title: "سیستم صوتی", categoryId: "audio" },
-          { title: "دستگاه پخش موسیقی", categoryId: "jukebox" },
-          { title: "تریبون", categoryId: "lectern" },
-          { title: "نورپردازی", categoryId: "lighting" },
-          { title: "میکروفون", categoryId: "microphone" },
-          { title: "دستگاه افکت", categoryId: "effects" },
-          { title: "اجاره تلویزیون", categoryId: "tv-hire" },
-          { title: "پروژکتور و پرده", categoryId: "projector" },
-        ]
-      }
+      { title: "سیستم صوتی", categoryId: "audio", image: "" },
+      { title: "دستگاه پخش موسیقی", categoryId: "jukebox", image: "" },
+      { title: "تریبون", categoryId: "lectern", image: "" },
+      { title: "نورپردازی", categoryId: "lighting", image: "" },
+      { title: "میکروفون", categoryId: "microphone", image: "" },
+      { title: "دستگاه افکت", categoryId: "effects", image: "" },
+      { title: "اجاره تلویزیون", categoryId: "tv-hire", image: "" },
+      { title: "پروژکتور و پرده", categoryId: "projector", image: "" }
     ]
   }
 ];

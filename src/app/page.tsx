@@ -28,13 +28,11 @@ export default function Home() {
             <h1 className="text-3xl font-bold text-gray-800 text-center mt-6 mb-1">
               {group.groupTitle}
             </h1>
-            {group.items.map((category) => (
-              <CategorySection 
-                key={category.title}
-                title={category.title}
-                items={category.items}
-              />
-            ))}
+            <CategorySection 
+              title={group.groupTitle}
+              items={group.items}
+              groupBorderColor={group.groupBorderColor}
+            />
           </div>
         ))}
       </div>

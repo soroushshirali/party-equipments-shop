@@ -2,6 +2,8 @@
 import { useEffect } from 'react';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { Button } from '@mui/material';
+import Link from 'next/link';
 
 export default function AdminPanel() {
   const { user, isAdmin, loading } = useAuth();
@@ -24,9 +26,12 @@ export default function AdminPanel() {
   return (
     <div className="p-6">
       <h1 className="text-2xl font-bold mb-6">پنل مدیریت</h1>
-      <div>
-        <p>Welcome, {user.email}</p>
-        {/* Add admin functionality here */}
+      <div className="grid gap-4">
+        <Link href="/admin-panel/categories">
+          <Button variant="contained" fullWidth>
+            مدیریت دسته‌بندی‌ها
+          </Button>
+        </Link>
       </div>
     </div>
   );

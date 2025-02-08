@@ -6,9 +6,10 @@ import { CategoryItem } from '@/types/types';
 interface CategorySectionProps {
   title: string;
   items: CategoryItem[];
+  groupBorderColor: string;
 }
 
-export const CategorySection = ({ title, items }: CategorySectionProps) => (
+export const CategorySection = ({ title, items, groupBorderColor }: CategorySectionProps) => (
   <Card className="mb-8">
     <CardHeader>
       <Typography className="text-2xl text-center text-gray-800" dir="rtl">
@@ -21,6 +22,7 @@ export const CategorySection = ({ title, items }: CategorySectionProps) => (
           <RentalItem 
             key={index} 
             {...item}
+            borderColor={groupBorderColor}
           />
         ))}
       </div>
