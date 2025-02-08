@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "seed": "ts-node --project tsconfig.json src/scripts/seed.ts"
+    "seed": "ts-node --project tsconfig.json src/scripts/seed.ts",
+    "seed:admin": "ts-node --project tsconfig.json src/scripts/seedAdmin.ts"
   },
   "dependencies": {
     "@emotion/react": "^11.14.0",

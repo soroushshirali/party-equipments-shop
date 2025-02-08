@@ -3,6 +3,8 @@ import { createContext, useContext, useState, useEffect, ReactNode } from 'react
 import { Product } from '@/types/types';
 import { db } from '@/lib/firebase';
 import { collection, doc, setDoc, deleteDoc, getDocs } from 'firebase/firestore';
+import { useAuth } from '@/contexts/AuthContext';
+import { useRouter } from 'next/navigation';
 
 interface CartContextType {
   cart: Product[];
@@ -18,6 +20,8 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
+  const { user, loading: authLoading } = useAuth();
+  const router = useRouter();
   const [cart, setCart] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
@@ -41,9 +45,14 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const addToCart = async (product: Product) => {
+    if (!user) {
+      router.push('/login');
+      return;
+    }
+    
     setLoadingItemId(product.id);
     try {
-      const cartRef = collection(db, 'cart');
+      const cartRef = collection(db, `users/${user.uid}/cart`);
       const existingItem = cart.find(item => item.id === product.id);
 
       if (existingItem) {
