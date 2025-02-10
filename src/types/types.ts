@@ -19,7 +19,8 @@ export interface ProductSpec {
   }
   
   export interface ProductData {
-    [key: string]: ProductCategory;
+    title: string;
+    products: Product[];
   }
   
   export interface CategoryItem {

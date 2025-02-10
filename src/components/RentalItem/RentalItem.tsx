@@ -5,9 +5,10 @@ interface RentalItemProps {
   title: string;
   categoryId: string;
   borderColor: string;
+  image?: string;
 }
 
-export const RentalItem = ({ title, categoryId, borderColor }: RentalItemProps) => (
+export const RentalItem = ({ title, categoryId, borderColor, image }: RentalItemProps) => (
   <div className="flex flex-col items-center p-2">
     <style>{`
       @keyframes bounce-scale {
@@ -24,7 +25,7 @@ export const RentalItem = ({ title, categoryId, borderColor }: RentalItemProps) 
         style={{ borderColor }}
       >
         <img
-          src="/api/placeholder/215/215"
+          src={image || '/api/placeholder/215/215'}
           alt={title}
           className="w-full h-full object-cover rounded-full"
         />

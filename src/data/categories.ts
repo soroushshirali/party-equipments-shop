@@ -3,34 +3,34 @@ const categories = [
     groupTitle: "تجهیزات نشیمن",
     groupBorderColor: '#FF5733',
     items: [
-      { title: "مبلمان بار", categoryId: "bar-furniture", image: "" },
-      { title: "اجاره صندلی", categoryId: "chair-hire", image: "" },
-      { title: "مبل و نیمکت", categoryId: "couch-ottoman", image: "" },
-      { title: "اجاره میز", categoryId: "table-hire", image: "" }
+      { title: "مبلمان بار", categoryId: "mock-uuid-1", image: "" },
+      { title: "اجاره صندلی", categoryId: "mock-uuid-2", image: "" },
+      { title: "مبل و نیمکت", categoryId: "mock-uuid-3", image: "" },
+      { title: "اجاره میز", categoryId: "mock-uuid-4", image: "" }
     ]
   },
   {
     groupTitle: "سازه‌های موقت",
     groupBorderColor: '#FF5733',
     items: [
-      { title: "اجاره چادر", categoryId: "marquee-hire", image: "" },
-      { title: "اجاره غرفه", categoryId: "stall-hire", image: "" },
-      { title: "اجاره چتر", categoryId: "umbrella-hire", image: "" },
-      { title: "اجاره چادر سیار", categoryId: "popup-marquee", image: "" }
+      { title: "اجاره چادر", categoryId: "mock-uuid-5", image: "" },
+      { title: "اجاره غرفه", categoryId: "mock-uuid-6", image: "" },
+      { title: "اجاره چتر", categoryId: "mock-uuid-7", image: "" },
+      { title: "اجاره چادر سیار", categoryId: "mock-uuid-8", image: "" }
     ]
   },
   {
     groupTitle: "تجهیزات نمایشی",
     groupBorderColor: '#FF5733',
     items: [
-      { title: "سیستم صوتی", categoryId: "audio", image: "" },
-      { title: "دستگاه پخش موسیقی", categoryId: "jukebox", image: "" },
-      { title: "تریبون", categoryId: "lectern", image: "" },
-      { title: "نورپردازی", categoryId: "lighting", image: "" },
-      { title: "میکروفون", categoryId: "microphone", image: "" },
-      { title: "دستگاه افکت", categoryId: "effects", image: "" },
-      { title: "اجاره تلویزیون", categoryId: "tv-hire", image: "" },
-      { title: "پروژکتور و پرده", categoryId: "projector", image: "" }
+      { title: "سیستم صوتی", categoryId: "mock-uuid-9", image: "" },
+      { title: "دستگاه پخش موسیقی", categoryId: "mock-uuid-10", image: "" },
+      { title: "تریبون", categoryId: "mock-uuid-11", image: "" },
+      { title: "نورپردازی", categoryId: "mock-uuid-12", image: "" },
+      { title: "میکروفون", categoryId: "mock-uuid-13", image: "" },
+      { title: "دستگاه افکت", categoryId: "mock-uuid-14", image: "" },
+      { title: "اجاره تلویزیون", categoryId: "mock-uuid-15", image: "" },
+      { title: "پروژکتور و پرده", categoryId: "mock-uuid-16", image: "" }
     ]
   }
 ];

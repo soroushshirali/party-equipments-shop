@@ -14,7 +14,7 @@ export default function ProductsPage() {
   const params = useParams();
   const categoryId = params.categoryId as string;
   const { cart, addToCart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen, loadingItemId, isLoading } = useCart();
-  const { products, loading: productsLoading, error } = useProducts();
+  const { products, loading: productsLoading, error } = useProducts(categoryId);
 
   const handleAddToCart = async (product: Product) => {
     try {
@@ -27,7 +27,7 @@ export default function ProductsPage() {
   if (productsLoading || isLoading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  const categoryProducts = products[categoryId]?.products || [];
+  const categoryProducts = products || [];
 
   return (
     <div dir="rtl">

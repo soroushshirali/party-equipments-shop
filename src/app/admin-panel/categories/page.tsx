@@ -17,12 +17,16 @@ import {
   TableHead,
   TableRow,
   Paper,
+  LinearProgress,
 } from '@mui/material';
 import { Edit, Delete, Add, ArrowBack } from '@mui/icons-material';
 import { ChromePicker } from 'react-color';
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
 import { CategoryGroup, CategoryItem } from '@/types/types';
+import { ref, uploadBytes, getDownloadURL, deleteObject, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
+import { storage } from '@/lib/firebase';
+import { v4 as uuidv4 } from 'uuid';
 
 export default function CategoryManagement() {
   const { user, isAdmin, loading } = useAuth();
@@ -37,6 +41,10 @@ export default function CategoryManagement() {
   const [itemTitle, setItemTitle] = useState('');
   const [itemImage, setItemImage] = useState('');
   const [editingItem, setEditingItem] = useState<CategoryItem | null>(null);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string>('');
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [isUploading, setIsUploading] = useState(false);
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) {
@@ -122,11 +130,20 @@ export default function CategoryManagement() {
   const handleDeleteItem = async (group: CategoryGroup, item: CategoryItem) => {
     if (confirm('آیا از حذف این آیتم اطمینان دارید؟')) {
       try {
+        // Delete the image from Firebase Storage
+        if (item.image) {
+          const imageRef = storageRef(storage, item.image);
+          await deleteObject(imageRef);
+        }
+
+        // Update the items in the group
         const updatedItems = group.items.filter(i => i.categoryId !== item.categoryId);
         await setDoc(doc(db, 'categories', group.id!), {
           ...group,
           items: updatedItems
         });
+
+        // Update the local state
         setGroups(prevGroups => 
           prevGroups.map(g => 
             g.id === group.id ? { ...g, items: updatedItems } : g
@@ -138,14 +155,80 @@ export default function CategoryManagement() {
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    if (e.target.files && e.target.files[0]) {
+      const file = e.target.files[0];
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadImage = async (file: File, oldImageUrl?: string) => {
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      if (oldImageUrl) {
+        try {
+          const oldImageRef = storageRef(storage, oldImageUrl);
+          await deleteObject(oldImageRef);
+        } catch (error) {
+          console.error('Error deleting old image:', error);
+        }
+      }
+
+      const imageRef = storageRef(storage, `category-images/${Date.now()}-${file.name}`);
+      const uploadTask = uploadBytesResumable(imageRef, file);
+
+      return new Promise<string>((resolve, reject) => {
+        uploadTask.on(
+          'state_changed',
+          (snapshot) => {
+            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
+            setUploadProgress(progress);
+          },
+          (error) => {
+            setIsUploading(false);
+            reject(error);
+          },
+          async () => {
+            const url = await getDownloadURL(imageRef);
+            setIsUploading(false);
+            resolve(url);
+          }
+        );
+      });
+    } catch (error) {
+      setIsUploading(false);
+      throw error;
+    }
+  };
+
   const handleSaveItem = async () => {
     if (!selectedGroup) return;
 
     try {
+      let imageUrl = itemImage;
+      
+      if (imageFile) {
+        try {
+          imageUrl = await uploadImage(imageFile, editingItem?.image);
+        } catch (error) {
+          console.error('Error uploading image:', error);
+          alert('خطا در آپلود تصویر');
+          return;
+        }
+      }
+
+      if (!itemTitle) {
+        alert('لطفا عنوان آیتم را وارد کنید');
+        return;
+      }
+debugger
       const newItem = {
         title: itemTitle,
-        categoryId: itemTitle.toLowerCase().replace(/ /g, '-'),
-        image: itemImage
+        categoryId: editingItem ? editingItem.categoryId : uuidv4(),
+        image: imageUrl
       };
 
       const updatedItems = editingItem
@@ -160,14 +243,21 @@ export default function CategoryManagement() {
       };
 
       await setDoc(doc(db, 'categories', selectedGroup.id!), updatedGroup);
+      
       setGroups(prevGroups => 
         prevGroups.map(group => 
           group.id === selectedGroup.id ? updatedGroup : group
         )
       );
+      
       setIsItemDialogOpen(false);
+      setImagePreview('');
+      setImageFile(null);
+      setItemTitle('');
+      setItemImage('');
     } catch (error) {
       console.error('Error saving item:', error);
+      alert('خطا در ذخیره آیتم');
     }
   };
 
@@ -185,7 +275,13 @@ export default function CategoryManagement() {
       {groups.map((group) => (
         <div key={group.id} className="mb-8">
           <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xl font-bold">{group.groupTitle}</h2>
+            <div className="flex items-center gap-4">
+              <h2 className="text-xl font-bold">{group.groupTitle}</h2>
+              <div 
+                className="w-6 h-6 rounded-full border"
+                style={{ backgroundColor: group.groupBorderColor }}
+              />
+            </div>
             <div>
               <IconButton onClick={() => handleEditGroup(group)}>
                 <Edit />
@@ -287,7 +383,11 @@ export default function CategoryManagement() {
       {/* Item Dialog */}
       <Dialog 
         open={isItemDialogOpen} 
-        onClose={() => setIsItemDialogOpen(false)}
+        onClose={(event, reason) => {
+          if (reason === 'backdropClick' && isUploading) return;
+          if (!isUploading) setIsItemDialogOpen(false);
+        }}
+        disableEscapeKeyDown={isUploading}
       >
         <DialogTitle>
           {editingItem ? 'ویرایش آیتم' : 'افزودن آیتم جدید'}
@@ -299,19 +399,61 @@ export default function CategoryManagement() {
               label="عنوان آیتم"
               value={itemTitle}
               onChange={(e) => setItemTitle(e.target.value)}
+              disabled={isUploading}
             />
-            <TextField
-              fullWidth
-              label="آدرس تصویر"
-              value={itemImage}
-              onChange={(e) => setItemImage(e.target.value)}
-            />
+            <div className="space-y-2">
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="hidden"
+                id="image-upload"
+                disabled={isUploading}
+              />
+              <label htmlFor="image-upload">
+                <Button
+                  variant="outlined"
+                  component="span"
+                  fullWidth
+                  disabled={isUploading}
+                  sx={{ textAlign: 'center' }}
+                >
+                  {imageFile ? 'تغییر تصویر' : 'انتخاب تصویر'}
+                </Button>
+              </label>
+              {isUploading && (
+                <div className="mt-2">
+                  <LinearProgress variant="determinate" value={uploadProgress} />
+                  <p className="text-center text-sm mt-1">
+                    در حال آپلود: {Math.round(uploadProgress)}%
+                  </p>
+                </div>
+              )}
+              {(imagePreview || itemImage) && (
+                <div className="mt-2">
+                  <img
+                    src={imagePreview || itemImage}
+                    alt="Preview"
+                    className="w-32 h-32 object-cover rounded"
+                  />
+                </div>
+              )}
+            </div>
           </div>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setIsItemDialogOpen(false)}>انصراف</Button>
-          <Button onClick={handleSaveItem} variant="contained">
-            ذخیره
+          <Button 
+            onClick={() => setIsItemDialogOpen(false)}
+            disabled={isUploading}
+          >
+            انصراف
+          </Button>
+          <Button 
+            onClick={handleSaveItem} 
+            variant="contained"
+            disabled={!itemTitle || isUploading}
+          >
+            {isUploading ? 'در حال آپلود...' : 'ذخیره'}
           </Button>
         </DialogActions>
       </Dialog>

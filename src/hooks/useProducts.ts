@@ -1,31 +1,30 @@
 import { useState, useEffect } from 'react';
 import { Product } from '@/types/types';
+import { getFirestore, collection, query, where, getDocs } from "firebase/firestore"; // Import Firestore functions
 
-export function useProducts() {
-  const [products, setProducts] = useState<{ [key: string]: { title: string, products: Product[] } }>({});
+export function useProducts(categoryId: string) { // Add categoryId as a parameter
+  const [products, setProducts] = useState<Product[]>([]); // Products are now just an array
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     async function fetchProducts() {
       try {
-        const response = await fetch('/api/products');
-        if (!response.ok) throw new Error('Failed to fetch products');
-        const data = await response.json();
-        
-        // Group products by categoryId
-        const groupedProducts = data.reduce((acc: any, product: Product & { categoryId: string, categoryTitle: string }) => {
-          if (!acc[product.categoryId]) {
-            acc[product.categoryId] = {
-              title: product.categoryTitle,
-              products: []
-            };
-          }
-          acc[product.categoryId].products.push(product);
-          return acc;
-        }, {});
-        
-        setProducts(groupedProducts);
+        const db = getFirestore(); // Get Firestore instance
+        const productsCollection = collection(db, 'products'); // Reference to your products collection
+
+        // Create a query to filter by categoryId
+        const q = query(productsCollection, where('categoryId', '==', categoryId));
+debugger
+        const querySnapshot = await getDocs(q);
+        const fetchedProducts: Product[] = [];
+
+        querySnapshot.forEach((doc) => {
+          // doc.data() is never undefined for query doc snapshots
+          fetchedProducts.push(doc.data() as Product); // Add each product to the array
+        });
+
+        setProducts(fetchedProducts);
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch products');
       } finally {
@@ -33,8 +32,12 @@ export function useProducts() {
       }
     }
 
-    fetchProducts();
-  }, []);
+    if (categoryId) { // Only fetch if categoryId is provided
+      fetchProducts();
+    } else {
+      setLoading(false); // If no categoryId, just set loading to false
+    }
+  }, [categoryId]); // Add categoryId to the dependency array
 
   return { products, loading, error };
-} 
+}
