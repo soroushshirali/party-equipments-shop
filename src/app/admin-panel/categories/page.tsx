@@ -22,7 +22,7 @@ import {
 import { Edit, Delete, Add, ArrowBack } from '@mui/icons-material';
 import { ChromePicker } from 'react-color';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc } from 'firebase/firestore';
 import { CategoryGroup, CategoryItem } from '@/types/types';
 import { ref, uploadBytes, getDownloadURL, deleteObject, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
 import { storage } from '@/lib/firebase';
@@ -89,25 +89,50 @@ export default function CategoryManagement() {
     }
   };
 
-  const handleSaveGroup = async () => {
-    if (!selectedGroup) return;
+  const handleCreateGroup = async () => {
     try {
-      const updatedGroup = {
-        ...selectedGroup,
+      const newGroup = {
         groupTitle,
         groupBorderColor: selectedColor,
-        items: selectedGroup.items
+        items: []
       };
 
-      await setDoc(doc(db, 'categories', selectedGroup.id!), updatedGroup);
-      setGroups(prevGroups => 
-        prevGroups.map(group => 
-          group.id === selectedGroup.id ? updatedGroup : group
-        )
-      );
+      const docRef = await addDoc(collection(db, 'categories'), newGroup);
+      
+      setGroups(prevGroups => [...prevGroups, { ...newGroup, id: docRef.id }]);
+      setIsGroupDialogOpen(false);
+      setGroupTitle('');
+      setSelectedColor('#000000');
+    } catch (error) {
+      console.error('Error creating group:', error);
+      alert('خطا در ایجاد گروه');
+    }
+  };
+
+  const handleSaveGroup = async () => {
+    try {
+      if (selectedGroup) {
+        // Editing existing group
+        const updatedGroup = {
+          ...selectedGroup,
+          groupTitle,
+          groupBorderColor: selectedColor,
+        };
+
+        await setDoc(doc(db, 'categories', selectedGroup.id!), updatedGroup);
+        setGroups(prevGroups => 
+          prevGroups.map(group => 
+            group.id === selectedGroup.id ? updatedGroup : group
+          )
+        );
+      } else {
+        // Creating new group
+        await handleCreateGroup();
+      }
       setIsGroupDialogOpen(false);
     } catch (error) {
       console.error('Error saving group:', error);
+      alert('خطا در ذخیره گروه');
     }
   };
 
@@ -265,11 +290,25 @@ debugger
 
   return (
     <div className="p-6">
-      <div className="flex items-center gap-4 mb-6">
-        <IconButton onClick={() => router.push('/admin-panel')}>
-          <ArrowBack />
-        </IconButton>
-        <h1 className="text-2xl font-bold">مدیریت دسته‌بندی‌ها</h1>
+      <div className="flex items-center justify-between gap-4 mb-6">
+        <div className="flex items-center gap-4">
+          <IconButton onClick={() => router.push('/admin-panel')}>
+            <ArrowBack />
+          </IconButton>
+          <h1 className="text-2xl font-bold">مدیریت دسته‌بندی‌ها</h1>
+        </div>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => {
+            setSelectedGroup(null);
+            setGroupTitle('');
+            setSelectedColor('#000000');
+            setIsGroupDialogOpen(true);
+          }}
+        >
+          افزودن گروه جدید
+        </Button>
       </div>
 
       {groups.map((group) => (
@@ -345,7 +384,9 @@ debugger
         open={isGroupDialogOpen} 
         onClose={() => setIsGroupDialogOpen(false)}
       >
-        <DialogTitle>ویرایش گروه</DialogTitle>
+        <DialogTitle>
+          {selectedGroup ? 'ویرایش گروه' : 'افزودن گروه جدید'}
+        </DialogTitle>
         <DialogContent>
           <div className="space-y-4 mt-4">
             <TextField
