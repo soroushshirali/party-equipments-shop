@@ -5,6 +5,7 @@ import { Header } from '@/components/Header';
 import { CategorySection } from '@/components/CategorySection';
 import { useCategories } from '@/hooks/useCategories';
 import { useCart } from '@/contexts/CartContext';
+import { FirebaseWrapper } from '@/components/FirebaseWrapper';
 
 export default function Home() {
   const { cart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen } = useCart();
@@ -14,7 +15,7 @@ export default function Home() {
   if (error) return <div>Error: {error}</div>;
 
   return (
-    <>
+    <FirebaseWrapper>
       <Header
         cart={cart}
         onRemoveFromCart={removeFromCart}
@@ -36,6 +37,6 @@ export default function Home() {
           </div>
         ))}
       </div>
-    </>
+    </FirebaseWrapper>
   );
 }
