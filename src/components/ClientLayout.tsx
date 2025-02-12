@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import { Providers } from './Providers';
 import { CartProvider } from '@/contexts/CartContext';
 import { AuthProvider } from '@/contexts/AuthContext';
-import { initFirebase } from '@/lib/initFirebase';
+import { getFirebaseServices } from '@/lib/firebase';
 
 interface ClientLayoutProps {
   children: React.ReactNode;
@@ -13,16 +13,20 @@ export function ClientLayout({ children }: ClientLayoutProps) {
   const [isInitialized, setIsInitialized] = useState(false);
 
   useEffect(() => {
-    if (typeof window === 'undefined') return;
+    async function init() {
+      if (typeof window === 'undefined') return;
 
-    try {
-      const app = initFirebase();
-      if (app) {
-        setIsInitialized(true);
+      try {
+        const { db, storage } = await getFirebaseServices();
+        if (db && storage) {
+          setIsInitialized(true);
+        }
+      } catch (error) {
+        console.error('Firebase initialization error:', error);
       }
-    } catch (error) {
-      console.error('Firebase initialization error:', error);
     }
+
+    init();
   }, []);
 
   if (!isInitialized) {
