@@ -10,13 +10,6 @@ import { useCart } from '@/contexts/CartContext';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 
-interface ProductsResponse {
-  [categoryId: string]: {
-    title: string;
-    products: Product[];
-  };
-}
-
 export default function ProductsPage() {
   const params = useParams();
   const categoryId = params.categoryId as string;

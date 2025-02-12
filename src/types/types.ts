@@ -11,6 +11,7 @@ export interface ProductSpec {
     specs: ProductSpec;
     image: string;
     quantity?: number;
+    categoryTitle: string;
   }
   
   export interface ProductCategory {
