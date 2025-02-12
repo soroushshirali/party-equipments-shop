@@ -1,6 +1,5 @@
 "use client";
 
-import { useState } from 'react';
 import { Card, CardContent, Button } from '@mui/material';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
@@ -9,6 +8,14 @@ import { Header } from '@/components/Header';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/contexts/CartContext';
 import { Loader2 } from 'lucide-react';
+import Image from 'next/image';
+
+interface ProductsResponse {
+  [categoryId: string]: {
+    title: string;
+    products: Product[];
+  };
+}
 
 export default function ProductsPage() {
   const params = useParams();
@@ -28,6 +35,7 @@ export default function ProductsPage() {
   if (error) return <div>Error: {error}</div>;
 
   const categoryProducts = products || [];
+  const categoryTitle = categoryProducts[0]?.categoryTitle || '';
 
   return (
     <div dir="rtl">
@@ -46,14 +54,16 @@ export default function ProductsPage() {
         </div>
         <div className="max-w-6xl mx-auto p-6">
           <h2 className="text-2xl font-bold mb-6">
-            {products[categoryId]?.title}
+            {categoryTitle}
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {categoryProducts.map((product) => (
               <Card key={product.id} className="overflow-hidden">
-                <img 
+                <Image 
                   src={product.image}
                   alt={product.name}
+                  width={215}
+                  height={215}
                   className="w-full h-48 object-cover"
                 />
                 <CardContent className="p-4">
