@@ -1,9 +1,7 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono, Vazirmatn } from "next/font/google";
 import "./globals.css";
-import { Providers } from '@/components/Providers';
-import { CartProvider } from '@/contexts/CartContext';
-import { AuthProvider } from '@/contexts/AuthContext';
+import { ClientLayout } from '@/components/ClientLayout';
 
 const vazir = Vazirmatn({
   subsets: ['arabic'],
@@ -28,22 +26,16 @@ export const metadata: Metadata = {
 
 export default function RootLayout({
   children,
-}: Readonly<{
+}: {
   children: React.ReactNode;
-}>) {
+}) {
+  const fontClasses = `${geistSans.variable} ${geistMono.variable} ${vazir.variable}`;
+  
   return (
     <html lang="fa" dir="rtl">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} ${vazir.variable} antialiased`}
-      >
-        <Providers>
-          <AuthProvider>
-            <CartProvider>
-              {children}
-            </CartProvider>
-          </AuthProvider>
-        </Providers>
-      </body>
+      <ClientLayout fontClasses={fontClasses}>
+        {children}
+      </ClientLayout>
     </html>
   );
 }

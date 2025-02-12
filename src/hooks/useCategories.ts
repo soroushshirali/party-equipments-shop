@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { CategoryGroup } from '@/types/types';
+import { db } from '@/lib/firebase';
+import { collection, getDocs } from 'firebase/firestore';
 
 export function useCategories() {
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
@@ -9,11 +11,21 @@ export function useCategories() {
   useEffect(() => {
     async function fetchCategories() {
       try {
-        const response = await fetch('/api/categories');
-        if (!response.ok) throw new Error('Failed to fetch categories');
-        const data = await response.json();
-        setCategories(data);
+        if (!db) {
+          throw new Error('Database not initialized');
+        }
+
+        const categoriesCol = collection(db, 'categories');
+        const snapshot = await getDocs(categoriesCol);
+        const fetchedCategories = snapshot.docs.map(doc => ({
+          id: doc.id,
+          ...doc.data()
+        })) as CategoryGroup[];
+
+        setCategories(fetchedCategories);
+        setError(null);
       } catch (err) {
+        console.error('Error fetching categories:', err);
         setError(err instanceof Error ? err.message : 'Failed to fetch categories');
       } finally {
         setLoading(false);
