@@ -33,9 +33,11 @@ export default function RootLayout({
   
   return (
     <html lang="fa" dir="rtl">
-      <ClientLayout fontClasses={fontClasses}>
-        {children}
-      </ClientLayout>
+      <body className={`${fontClasses} antialiased`}>
+        <ClientLayout>
+          {children}
+        </ClientLayout>
+      </body>
     </html>
   );
 }
