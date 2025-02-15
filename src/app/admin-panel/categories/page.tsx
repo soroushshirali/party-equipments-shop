@@ -21,12 +21,70 @@ import {
 } from '@mui/material';
 import { Edit, Delete, Add, ArrowBack } from '@mui/icons-material';
 import { ChromePicker } from 'react-color';
-import { db } from '@/lib/firebase';
+import { db, storage } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc } from 'firebase/firestore';
 import { CategoryGroup, CategoryItem } from '@/types/types';
 import { ref, uploadBytes, getDownloadURL, deleteObject, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
-import { storage } from '@/lib/firebase';
 import { v4 as uuidv4 } from 'uuid';
+
+// Add this function to resize the image
+async function resizeImage(file: File): Promise<Blob> {
+  return new Promise((resolve) => {
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      const img = new Image();
+      img.onload = () => {
+        const canvas = document.createElement('canvas');
+        const MAX_SIZE = 215;
+        let width = img.width;
+        let height = img.height;
+
+        // Calculate new dimensions while maintaining aspect ratio
+        if (width > height) {
+          if (width > MAX_SIZE) {
+            height = Math.round((height * MAX_SIZE) / width);
+            width = MAX_SIZE;
+          }
+        } else {
+          if (height > MAX_SIZE) {
+            width = Math.round((width * MAX_SIZE) / height);
+            height = MAX_SIZE;
+          }
+        }
+
+        canvas.width = width;
+        canvas.height = height;
+
+        const ctx = canvas.getContext('2d');
+        ctx?.drawImage(img, 0, 0, width, height);
+
+        canvas.toBlob((blob) => {
+          if (blob) {
+            resolve(blob);
+          }
+        }, file.type);
+      };
+      img.src = e.target?.result as string;
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// Update the handleImageUpload function
+const handleImageUpload = async (file: File): Promise<string> => {
+  try {
+    // Resize the image before uploading
+    const resizedImage = await resizeImage(file);
+    
+    const storageRef = ref(storage, `categories/${file.name}`);
+    await uploadBytes(storageRef, resizedImage);
+    const url = await getDownloadURL(storageRef);
+    return url;
+  } catch (error) {
+    console.error('Error uploading image:', error);
+    throw error;
+  }
+};
 
 export default function CategoryManagement() {
   const { user, isAdmin, loading } = useAuth();
@@ -180,52 +238,17 @@ export default function CategoryManagement() {
     }
   };
 
-  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleImageChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.files && e.target.files[0]) {
       const file = e.target.files[0];
       setImageFile(file);
-      setImagePreview(URL.createObjectURL(file));
-    }
-  };
-
-  const uploadImage = async (file: File, oldImageUrl?: string) => {
-    setIsUploading(true);
-    setUploadProgress(0);
-
-    try {
-      if (oldImageUrl) {
-        try {
-          const oldImageRef = storageRef(storage, oldImageUrl);
-          await deleteObject(oldImageRef);
-        } catch (error) {
-          console.error('Error deleting old image:', error);
-        }
+      try {
+        const imageUrl = await handleImageUpload(file);
+        setImagePreview(imageUrl);
+      } catch (error) {
+        console.error('Error uploading image:', error);
+        alert('خطا در آپلود تصویر');
       }
-
-      const imageRef = storageRef(storage, `category-images/${Date.now()}-${file.name}`);
-      const uploadTask = uploadBytesResumable(imageRef, file);
-
-      return new Promise<string>((resolve, reject) => {
-        uploadTask.on(
-          'state_changed',
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 100;
-            setUploadProgress(progress);
-          },
-          (error) => {
-            setIsUploading(false);
-            reject(error);
-          },
-          async () => {
-            const url = await getDownloadURL(imageRef);
-            setIsUploading(false);
-            resolve(url);
-          }
-        );
-      });
-    } catch (error) {
-      setIsUploading(false);
-      throw error;
     }
   };
 
@@ -237,7 +260,7 @@ export default function CategoryManagement() {
       
       if (imageFile) {
         try {
-          imageUrl = await uploadImage(imageFile, editingItem?.image);
+          imageUrl = await handleImageUpload(imageFile);
         } catch (error) {
           console.error('Error uploading image:', error);
           alert('خطا در آپلود تصویر');
@@ -249,7 +272,7 @@ export default function CategoryManagement() {
         alert('لطفا عنوان آیتم را وارد کنید');
         return;
       }
-debugger
+
       const newItem = {
         title: itemTitle,
         categoryId: editingItem ? editingItem.categoryId : uuidv4(),
