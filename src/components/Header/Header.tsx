@@ -26,7 +26,7 @@ export const Header = ({
   setIsCartOpen,
   showBackButton
 }: HeaderProps) => {
-  const { user, isAdmin, signOut } = useAuth();
+  const { user, userData, isAdmin, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const closeMobileMenu = () => {
@@ -44,10 +44,15 @@ export const Header = ({
                 <Button>بازگشت به دسته‌بندی‌ها</Button>
               </Link>
             )}
+            <Link href="/about">
+              <Button>درباره ما</Button>
+            </Link>
             {user && (
               <>
                 <Link href="/profile">
-                  <Button>{user.email}</Button>
+                  <Button>
+                    {userData?.firstName} {userData?.lastName}
+                  </Button>
                 </Link>
                 {isAdmin && (
                   <Link href="/admin-panel">
@@ -124,10 +129,19 @@ export const Header = ({
 
               <div className="text-lg font-bold mb-6 pt-2">منو</div>
 
+              {/* Add About Us link at the top of mobile menu */}
+              <Link href="/about" onClick={closeMobileMenu}>
+                <Button variant="text" fullWidth>
+                  درباره ما
+                </Button>
+              </Link>
+
               {user ? (
                 <>
                   <Link href="/profile" onClick={closeMobileMenu}>
-                    <Button fullWidth>{user.email}</Button>
+                    <Button fullWidth>
+                      {userData?.firstName} {userData?.lastName}
+                    </Button>
                   </Link>
                   {isAdmin && (
                     <Link href="/admin-panel" onClick={closeMobileMenu}>

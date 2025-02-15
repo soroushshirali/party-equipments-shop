@@ -15,13 +15,22 @@ import {
 import { doc, getDoc, setDoc } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { useRouter, usePathname } from 'next/navigation';
+import { collection, getDocs, query, where } from 'firebase/firestore';
+
+interface UserData {
+  firstName: string;
+  lastName: string;
+  phone: string;
+  email?: string;
+}
 
 interface AuthContextType {
   user: User | null;
+  userData: UserData | null;
   isAdmin: boolean;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<void>;
-  signUp: (email: string, password: string) => Promise<void>;
+  signIn: (phone: string, password: string) => Promise<void>;
+  signUp: (data: { firstName: string; lastName: string; phone: string; email?: string; password: string }) => Promise<void>;
   signOut: () => Promise<void>;
   resetPassword: (email: string) => Promise<void>;
   updateUserPassword: (newPassword: string) => Promise<void>;
@@ -31,6 +40,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [userData, setUserData] = useState<UserData | null>(null);
   const [isAdmin, setIsAdmin] = useState(false);
   const [loading, setLoading] = useState(true);
   const auth = getAuth();
@@ -41,18 +51,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const unsubscribe = onAuthStateChanged(auth, async (user) => {
       setUser(user);
       if (user) {
-        // Check if user is admin
         const userDoc = await getDoc(doc(db, 'users', user.uid));
-        const isUserAdmin = userDoc.data()?.role === 'admin';
-        setIsAdmin(isUserAdmin);
-        
+        const data = userDoc.data();
+        if (data) {
+          setUserData({
+            firstName: data.firstName,
+            lastName: data.lastName,
+            phone: data.phone,
+            email: data.email
+          });
+          setIsAdmin(data.role === 'admin');
+        }
         // Redirect from login page if already logged in
         if (pathname === '/login') {
           router.push('/');
         }
         
         // Redirect from admin panel if not admin
-        if (pathname === '/admin-panel' && !isUserAdmin) {
+        if (pathname === '/admin-panel' && !data?.role === 'admin') {
           router.push('/');
         }
       } else {
@@ -65,18 +81,40 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return () => unsubscribe();
   }, [auth, pathname, router]);
 
-  const signIn = async (email: string, password: string) => {
+  const signIn = async (phone: string, password: string) => {
     try {
+      // Get user document by phone number
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('phone', '==', phone));
+      const querySnapshot = await getDocs(q);
+      
+      if (querySnapshot.empty) {
+        throw new Error('کاربری با این شماره تلفن یافت نشد');
+      }
+
+      const userDoc = querySnapshot.docs[0];
+      const userData = userDoc.data();
+      const email = userData.email || `${phone}@example.com`;
+
+      // Sign in with email and password
       await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithEmailAndPassword(auth, email, password);
-      const userDoc = await getDoc(doc(db, 'users', result.user.uid));
-      const isUserAdmin = userDoc.data()?.role === 'admin';
-     
-      router.push('/');
 
-    } catch (error) {
+      setUserData({
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        phone: userData.phone,
+        email: userData.email
+      });
+      setIsAdmin(userData.role === 'admin');
+
+      router.push('/');
+    } catch (error: any) {
       console.error('Failed to sign in:', error);
-      throw error;
+      if (error.message === 'کاربری با این شماره تلفن یافت نشد') {
+        throw error;
+      }
+      throw new Error('شماره تلفن یا رمز عبور نادرست است');
     }
   };
 
@@ -90,17 +128,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const signUp = async (email: string, password: string) => {
+  const signUp = async (data: { firstName: string; lastName: string; phone: string; email?: string; password: string }) => {
     try {
-      const result = await createUserWithEmailAndPassword(auth, email, password);
+      // Check if phone number already exists
+      const usersRef = collection(db, 'users');
+      const q = query(usersRef, where('phone', '==', data.phone));
+      const querySnapshot = await getDocs(q);
+      
+      if (!querySnapshot.empty) {
+        throw new Error('این شماره تلفن قبلاً ثبت شده است');
+      }
+
+      // Create user with phone as email if no email provided
+      const email = data.email || `${data.phone}@example.com`;
+      const result = await createUserWithEmailAndPassword(auth, email, data.password);
+      
+      // Save additional user data
       await setDoc(doc(db, 'users', result.user.uid), {
-        email,
+        firstName: data.firstName,
+        lastName: data.lastName,
+        phone: data.phone,
+        email: data.email,
         role: 'user'
       });
+
       router.push('/');
-    } catch (error) {
+    } catch (error: any) {
       console.error('Failed to sign up:', error);
-      throw error;
+      
+      // Convert Firebase errors to Persian messages
+      if (error.code === 'auth/email-already-in-use') {
+        throw new Error('این ایمیل قبلاً ثبت شده است');
+      } else if (error.message === 'این شماره تلفن قبلاً ثبت شده است') {
+        throw error;
+      } else if (error.code === 'auth/invalid-email') {
+        throw new Error('ایمیل وارد شده معتبر نیست');
+      } else if (error.code === 'auth/operation-not-allowed') {
+        throw new Error('امکان ثبت نام در حال حاضر وجود ندارد');
+      } else if (error.code === 'auth/weak-password') {
+        throw new Error('رمز عبور ضعیف است');
+      }
+      
+      throw new Error('خطا در ثبت نام. لطفاً دوباره تلاش کنید');
     }
   };
 
@@ -125,7 +194,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   return (
     <AuthContext.Provider value={{ 
-      user, 
+      user,
+      userData,
       isAdmin, 
       loading, 
       signIn, 

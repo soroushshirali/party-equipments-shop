@@ -6,24 +6,57 @@ import { Button, TextField } from '@mui/material';
 import Link from 'next/link';
 
 export default function RegisterPage() {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
+  const [formData, setFormData] = useState({
+    firstName: '',
+    lastName: '',
+    phone: '',
+    email: '',
+    password: '',
+    confirmPassword: ''
+  });
   const [error, setError] = useState('');
   const { signUp } = useAuth();
   const router = useRouter();
 
+  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    // Only allow numbers and limit length to 15
+    if (/^\d*$/.test(value) && value.length <= 15) {
+      setFormData({ ...formData, phone: value });
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (password !== confirmPassword) {
+    setError('');
+
+    if (!formData.phone || !formData.firstName || !formData.lastName || !formData.password) {
+      setError('نام، نام خانوادگی، شماره تلفن و رمز عبور الزامی هستند');
+      return;
+    }
+
+    // Just check if phone contains only numbers
+    if (!/^\d+$/.test(formData.phone)) {
+      setError('لطفاً شماره تلفن معتبر وارد کنید');
+      return;
+    }
+
+    // Validate password length
+    if (formData.password.length < 6) {
+      setError('رمز عبور باید حداقل ۶ کاراکتر باشد');
+      return;
+    }
+
+    if (formData.password !== formData.confirmPassword) {
       setError('رمز عبور و تکرار آن مطابقت ندارند');
       return;
     }
+
     try {
-      await signUp(email, password);
+      await signUp(formData);
       router.push('/');
-    } catch (error) {
-      setError('خطا در ثبت نام');
+    } catch (error: any) {
+      setError(error.message || 'خطا در ثبت نام');
     }
   };
 
@@ -37,25 +70,52 @@ export default function RegisterPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <TextField
             fullWidth
-            label="ایمیل"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            label="نام"
+            value={formData.firstName}
+            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+            required
+            dir="rtl"
+          />
+          <TextField
+            fullWidth
+            label="نام خانوادگی"
+            value={formData.lastName}
+            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+            required
+            dir="rtl"
+          />
+          <TextField
+            fullWidth
+            label="شماره تلفن"
+            value={formData.phone}
+            onChange={handlePhoneChange}
+            required
+            dir="ltr"
+            inputProps={{
+              maxLength: 15
+            }}
+          />
+          <TextField
+            fullWidth
+            label="ایمیل (اختیاری)"
+            value={formData.email}
+            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
             dir="ltr"
           />
           <TextField
             fullWidth
             type="password"
             label="رمز عبور"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
             dir="ltr"
           />
           <TextField
             fullWidth
             type="password"
             label="تکرار رمز عبور"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
+            value={formData.confirmPassword}
+            onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
             dir="ltr"
           />
           <Button

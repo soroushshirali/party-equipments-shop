@@ -9,7 +9,7 @@ export default function ProfilePage() {
   const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const { user, updateUserPassword, signOut } = useAuth();
+  const { user, userData, updateUserPassword, signOut } = useAuth();
   const router = useRouter();
 
   if (!user) {
@@ -38,8 +38,11 @@ export default function ProfilePage() {
   return (
     <div className="max-w-md mx-auto p-6">
       <h1 className="text-2xl font-bold mb-6">پروفایل</h1>
-      <div className="mb-6">
-        <p>ایمیل: {user.email}</p>
+      <div className="mb-6 space-y-2">
+        <p>نام: {userData?.firstName}</p>
+        <p>نام خانوادگی: {userData?.lastName}</p>
+        <p>شماره تلفن: {userData?.phone}</p>
+        {userData?.email && <p>ایمیل: {userData.email}</p>}
       </div>
       <div className="bg-white rounded-lg shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4">تغییر رمز عبور</h2>
