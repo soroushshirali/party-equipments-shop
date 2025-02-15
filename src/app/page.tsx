@@ -6,12 +6,13 @@ import { CategorySection } from '@/components/CategorySection';
 import { useCategories } from '@/hooks/useCategories';
 import { useCart } from '@/contexts/CartContext';
 import { FirebaseWrapper } from '@/components/FirebaseWrapper';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function Home() {
   const { cart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen } = useCart();
   const { categories, loading, error } = useCategories();
 
-  if (loading) return <div>Loading...</div>;
+  if (loading) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
 
   return (

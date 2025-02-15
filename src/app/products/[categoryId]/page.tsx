@@ -10,6 +10,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { FirebaseWrapper } from '@/components/FirebaseWrapper';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function ProductsPage() {
   const params = useParams();
@@ -25,7 +26,7 @@ export default function ProductsPage() {
     }
   };
 
-  if (productsLoading || isLoading) return <div>Loading...</div>;
+  if (productsLoading || isLoading) return <LoadingSpinner />;
   if (error) return <div>Error: {error}</div>;
 
   const categoryProducts = products || [];

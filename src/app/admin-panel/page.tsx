@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@mui/material';
 import Link from 'next/link';
 import { FirebaseWrapper } from '@/components/FirebaseWrapper';
+import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function AdminPanel() {
   const { user, isAdmin, loading } = useAuth();
@@ -17,7 +18,7 @@ export default function AdminPanel() {
   }, [user, isAdmin, loading, router]);
 
   if (loading) {
-    return <div>Loading...</div>;
+    return <LoadingSpinner />;
   }
 
   if (!user || !isAdmin) {
