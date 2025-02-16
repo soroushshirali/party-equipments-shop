@@ -4,13 +4,14 @@ import { Card, CardContent, Button } from '@mui/material';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
 import { Product } from '@/types/types';
-import { Header } from '@/components/Header';
+import { Header } from '@/components/Header/Header';
 import { useProducts } from '@/hooks/useProducts';
 import { useCart } from '@/contexts/CartContext';
 import { Loader2 } from 'lucide-react';
 import Image from 'next/image';
 import { FirebaseWrapper } from '@/components/FirebaseWrapper';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { Select, ListSubheader, MenuItem } from '@mui/material';
 
 export default function ProductsPage() {
   const categoryId = useParams()?.categoryId as string;
@@ -53,57 +54,75 @@ export default function ProductsPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {categoryProducts.map((product) => (
-                <div key={product.id} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full">
-                  <div className="mb-4 text-center">
-                    <Link 
-                      href={`/products/${categoryId}/${product.id}`}
-                      className="text-xl font-bold text-blue-600 hover:text-blue-800 block"
-                    >
-                      {product.name}
-                    </Link>
-                  </div>
-
-                  <Link 
-                    href={`/products/${categoryId}/${product.id}`} 
-                    className="block group mb-4"
-                  >
-                    <img 
-                      src={product.image} 
-                      alt={product.name} 
-                      className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
-                    />
-                  </Link>
-
-                  <div className="space-y-2 mb-4 flex-grow">
-                    <p className="text-sm">طول: {product.length || '-'} سانتی‌متر</p>
-                    <p className="text-sm">عرض: {product.width || '-'} سانتی‌متر</p>
-                    <p className="text-sm">ارتفاع: {product.height || '-'} سانتی‌متر</p>
-                  </div>
-
-                  <div className="mt-auto">
-                    <div className="flex justify-between items-center mb-2">
-                      <span className="text-lg font-bold">{product.price} تومان</span>
-                      <Button
-                        variant="contained"
-                        onClick={() => handleAddToCart(product)}
-                        disabled={loadingItemId === product.id}
+                <Card key={`product-${product.id}`} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full">
+                  <CardContent>
+                    <div className="mb-4 text-center">
+                      <Link 
+                        href={`/products/${categoryId}/${product.id}`}
+                        className="text-xl font-bold text-blue-600 hover:text-blue-800 block"
                       >
-                        افزودن به سبد خرید
-                      </Button>
+                        {product.name}
+                      </Link>
                     </div>
+
                     <Link 
-                      href={`/products/${categoryId}/${product.id}`}
-                      className="w-full block"
+                      href={`/products/${categoryId}/${product.id}`} 
+                      className="block group mb-4"
                     >
-                      <Button
-                        variant="outlined"
-                        fullWidth
-                      >
-                        مشاهده جزئیات
-                      </Button>
+                      <img 
+                        src={product.image} 
+                        alt={product.name} 
+                        className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
+                      />
                     </Link>
-                  </div>
-                </div>
+
+                    <div className="space-y-2 mb-4 flex-grow">
+                      <div className="mt-4">
+                        <h3 className="text-lg font-semibold mb-2">مشخصات محصول:</h3>
+                        <div className="space-y-2">
+                          <div className="flex">
+                            <span className="w-24 text-gray-600">ابعاد:</span>
+                            <span>{`${product.specs.length} × ${product.specs.width} × ${product.specs.height} سانتی‌متر`}</span>
+                          </div>
+                          <div className="flex">
+                            <span className="w-24 text-gray-600">وزن:</span>
+                            <span>{`${product.specs.weight} کیلوگرم`}</span>
+                          </div>
+                          {product.description && (
+                            <div className="flex">
+                              <span className="w-24 text-gray-600">توضیحات:</span>
+                              <span>{product.description}</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+
+                    <div className="mt-auto">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-lg font-bold">{product.price} تومان</span>
+                        <Button
+                          variant="contained"
+                          onClick={() => handleAddToCart(product)}
+                          disabled={loadingItemId === product.id}
+                        >
+                          افزودن به سبد خرید
+                        </Button>
+                      </div>
+                      <Link 
+                        href={`/products/${categoryId}/${product.id}`}
+                        className="w-full block"
+                      >
+                        <Button
+                          variant="outlined"
+                          fullWidth
+                        >
+                          مشاهده جزئیات
+                        </Button>
+                      </Link>
+                    </div>
+                  </CardContent>
+                </Card>
               ))}
             </div>
           </div>

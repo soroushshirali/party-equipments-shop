@@ -15,18 +15,40 @@ export function useProducts(categoryId: string) { // Add categoryId as a paramet
 
         // Create a query to filter by categoryId
         const q = query(productsCollection, where('categoryId', '==', categoryId));
-debugger
-        const querySnapshot = await getDocs(q);
-        const fetchedProducts: Product[] = [];
+        const snapshot = await getDocs(q);
+        
+        // Debug: Log raw data from Firestore
+        console.log('Raw Firestore data:', snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() })));
 
-        querySnapshot.forEach((doc) => {
-          // doc.data() is never undefined for query doc snapshots
-          fetchedProducts.push(doc.data() as Product); // Add each product to the array
+        const productsData = snapshot.docs.map(doc => {
+          const data = doc.data();
+          // Debug: Log individual product data
+          console.log('Processing product:', data);
+          
+          return {
+            id: doc.id,
+            name: data.name,
+            price: data.price,
+            image: data.image,
+            originalImage: data.originalImage,
+            categoryId: data.categoryId,
+            categoryTitle: data.categoryTitle,
+            description: data.description || '',  // اطمینان از وجود description
+            specs: {
+              length: data.specs?.length || 0,
+              width: data.specs?.width || 0,
+              height: data.specs?.height || 0,
+              weight: data.specs?.weight || 0
+            }
+          };
         });
 
-        setProducts(fetchedProducts);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch products');
+        // Debug: Log final processed data
+        console.log('Processed products:', productsData);
+        setProducts(productsData);
+      } catch (error) {
+        console.error('Error loading products:', error);
+        setError('خطا در بارگذاری محصولات');
       } finally {
         setLoading(false);
       }

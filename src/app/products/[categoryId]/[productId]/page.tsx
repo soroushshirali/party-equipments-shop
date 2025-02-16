@@ -7,6 +7,7 @@ import { Header } from '@/components/Header';
 import { Button } from '@mui/material';
 import Link from 'next/link';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
+import { ImageViewer } from '@/components/ImageViewer';
 
 export default function ProductDetails() {
   const params = useParams();
@@ -18,19 +19,23 @@ export default function ProductDetails() {
 
   if (productsLoading) return <LoadingSpinner />;
 
+  console.log('All products:', products);
   const product = products?.find(p => p.id.toString() === productId);
+  console.log('Selected product:', product);
+
   if (!product) return <div>محصول یافت نشد</div>;
+
+  const headerProps = {
+    cart,
+    onRemoveFromCart: removeFromCart,
+    onUpdateQuantity: updateQuantity,
+    isCartOpen,
+    setIsCartOpen,
+  };
 
   return (
     <div dir="rtl">
-      <Header
-        cart={cart}
-        onRemoveFromCart={removeFromCart}
-        onUpdateQuantity={updateQuantity}
-        isCartOpen={isCartOpen}
-        setIsCartOpen={setIsCartOpen}
-        showBackButton
-      />
+      <Header {...headerProps} showBackButton />
       
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-4">
@@ -39,33 +44,44 @@ export default function ProductDetails() {
           </Link>
         </div>
 
-        <div className="bg-white rounded-lg shadow-lg p-6">
+        <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div>
-              <img 
-                src={product.image} 
-                alt={product.title}
-                className="w-full rounded-lg"
+            <div className="mb-6">
+              <ImageViewer 
+                thumbnailUrl={product.image}
+                originalUrl={product.originalImage}
+                alt={product.name}
               />
             </div>
             
             <div className="space-y-4">
-              <h1 className="text-2xl font-bold">{product.title}</h1>
+              <h1 className="text-2xl font-bold">{product.name}</h1>
               
-              <div className="space-y-2">
-                <p className="text-lg">طول: {product.length || '-'} سانتی‌متر</p>
-                <p className="text-lg">عرض: {product.width || '-'} سانتی‌متر</p>
-                <p className="text-lg">ارتفاع: {product.height || '-'} سانتی‌متر</p>
-              </div>
-
-              <div className="text-gray-700 my-4">
-                <h2 className="text-xl font-bold mb-2">توضیحات:</h2>
-                <p className="whitespace-pre-wrap">{product.description || 'توضیحاتی ثبت نشده است'}</p>
+              <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
+                <h3 className="font-semibold mb-4">مشخصات فنی:</h3>
+                <div className="space-y-2">
+                  <p className="text-gray-600 flex justify-between">
+                    <span>طول:</span>
+                    <span className="text-black">{product.specs.length} سانتی‌متر</span>
+                  </p>
+                  <p className="text-gray-600 flex justify-between">
+                    <span>عرض:</span>
+                    <span className="text-black">{product.specs.width} سانتی‌متر</span>
+                  </p>
+                  <p className="text-gray-600 flex justify-between">
+                    <span>ارتفاع:</span>
+                    <span className="text-black">{product.specs.height} سانتی‌متر</span>
+                  </p>
+                  <p className="text-gray-600 flex justify-between">
+                    <span>وزن:</span>
+                    <span className="text-black">{product.specs.weight} کیلوگرم</span>
+                  </p>
+                </div>
               </div>
 
               <div className="pt-4 border-t">
                 <div className="flex justify-between items-center mb-4">
-                  <span className="text-2xl font-bold">{product.price} تومان</span>
+                  <span className="text-2xl font-bold">{product.price.toLocaleString()} تومان</span>
                   <Button
                     variant="contained"
                     onClick={() => addToCart(product)}
@@ -79,6 +95,19 @@ export default function ProductDetails() {
             </div>
           </div>
         </div>
+
+        {product.description && console.log('Description exists:', product.description)}
+        {product.description ? (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4">توضیحات محصول:</h2>
+            <pre className="whitespace-pre-wrap text-gray-700">{JSON.stringify(product.description, null, 2)}</pre>
+          </div>
+        ) : (
+          <div className="bg-white rounded-lg shadow-lg p-6">
+            <h2 className="text-xl font-bold mb-4">توضیحات محصول:</h2>
+            <p className="text-gray-500">توضیحاتی برای این محصول ثبت نشده است.</p>
+          </div>
+        )}
       </div>
     </div>
   );

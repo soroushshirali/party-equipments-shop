@@ -9,12 +9,12 @@ interface MobileCartProps {
   items: Product[];
 }
 
-export function MobileCart({ isOpen, onClose, items }: MobileCartProps) {
+export const MobileCart = ({ isOpen, onClose, items }: MobileCartProps) => {
   if (!isOpen) return null;
 
-  const total = items.reduce((sum, item) => 
-    sum + (parseFloat(item.price.replace(/[^\d]/g, '')) * (item.quantity || 1)), 0
-  );
+  const totalPrice = items.reduce((total, item) => {
+    return total + (item.price * (item.quantity || 1));
+  }, 0).toLocaleString();
 
   return (
     <div className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50">
@@ -45,9 +45,7 @@ export function MobileCart({ isOpen, onClose, items }: MobileCartProps) {
           <div className="p-4 border-t bg-white">
             <div className="flex justify-between items-center mb-4">
               <span className="font-bold">جمع کل:</span>
-              <span className="font-bold">
-                {total.toLocaleString()} تومان
-              </span>
+              <span className="font-bold">{totalPrice} تومان</span>
             </div>
             <Button variant="contained" fullWidth>
               تکمیل خرید

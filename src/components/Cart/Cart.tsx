@@ -6,17 +6,16 @@ import { CartItem } from './CartItem';
 
 interface CartProps {
   items: Product[];
-  onRemove: (id: number) => void;
-  onUpdateQuantity: (id: number, quantity: number) => void;
+  onRemove: (id: string) => Promise<void>;
+  onUpdateQuantity: (id: string, quantity: number) => Promise<void>;
   isOpen: boolean;
   onToggle: () => void;
 }
 
 export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: CartProps) => {
-  const total = items.reduce((sum, item) => {
-    const price = parseFloat(item.price.replace(/[^\d]/g, ''));
-    return sum + price * (item.quantity || 1);
-  }, 0);
+  const totalPrice = items.reduce((total, item) => {
+    return total + (item.price * (item.quantity || 1));
+  }, 0).toLocaleString();
 
   return (
     <div className="md:fixed md:top-4 md:left-4 z-50">
@@ -47,7 +46,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
                 {items.length}
               </span>
             </div>
-            <span>{total.toLocaleString()} تومان</span>
+            <span>{totalPrice} تومان</span>
           </div>
           {isOpen && (
             <div className="max-h-96 overflow-y-auto">
@@ -102,7 +101,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
             <div className="p-4 border-t bg-white">
               <div className="flex justify-between items-center mb-4">
                 <span className="font-bold">جمع کل:</span>
-                <span className="font-bold">{total.toLocaleString()} تومان</span>
+                <span className="font-bold">{totalPrice}</span>
               </div>
               <Button variant="contained" fullWidth>
                 تکمیل خرید

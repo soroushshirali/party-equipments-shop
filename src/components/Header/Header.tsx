@@ -11,8 +11,8 @@ import { MobileCart } from '../Cart/MobileCart';
 
 interface HeaderProps {
   cart: Product[];
-  onRemoveFromCart: (id: number) => void;
-  onUpdateQuantity: (id: number, quantity: number) => void;
+  onRemoveFromCart: (id: string) => Promise<void>;
+  onUpdateQuantity: (id: string, quantity: number) => Promise<void>;
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
   showBackButton?: boolean;

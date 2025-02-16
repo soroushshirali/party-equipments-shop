@@ -9,12 +9,12 @@ import { useRouter } from 'next/navigation';
 interface CartContextType {
   cart: Product[];
   addToCart: (product: Product) => Promise<void>;
-  removeFromCart: (id: number) => Promise<void>;
-  updateQuantity: (id: number, quantity: number) => Promise<void>;
+  removeFromCart: (id: string) => Promise<void>;
+  updateQuantity: (id: string, quantity: number) => Promise<void>;
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
   isLoading: boolean;
-  loadingItemId: number | null;
+  loadingItemId: string | null;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -25,7 +25,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [cart, setCart] = useState<Product[]>([]);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
-  const [loadingItemId, setLoadingItemId] = useState<number | null>(null);
+  const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
 
   useEffect(() => {
     async function loadCart() {
@@ -57,6 +57,11 @@ export function CartProvider({ children }: { children: ReactNode }) {
       router.push('/login');
       return;
     }
+
+    if (!product.id) {
+      console.error('Product ID is missing');
+      return;
+    }
     
     setLoadingItemId(product.id);
     try {
@@ -65,7 +70,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       if (existingItem) {
         const newQuantity = (existingItem.quantity || 1) + 1;
-        await setDoc(doc(cartRef, product.id.toString()), {
+        await setDoc(doc(cartRef, product.id), {
           ...product,
           quantity: newQuantity
         });
@@ -75,7 +80,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
             : item
         ));
       } else {
-        await setDoc(doc(cartRef, product.id.toString()), {
+        await setDoc(doc(cartRef, product.id), {
           ...product,
           quantity: 1
         });
@@ -86,28 +91,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
     }
   };
 
-  const removeFromCart = async (id: number) => {
-    if (!user) return;
+  const removeFromCart = async (id: string) => {
+    if (!user || !id) return;
 
     setLoadingItemId(id);
     try {
       const cartRef = collection(db, `users/${user.uid}/cart`);
-      await deleteDoc(doc(cartRef, id.toString()));
+      await deleteDoc(doc(cartRef, id));
       setCart(prev => prev.filter(item => item.id !== id));
     } finally {
       setLoadingItemId(null);
     }
   };
 
-  const updateQuantity = async (id: number, quantity: number) => {
-    if (!user) return;
+  const updateQuantity = async (id: string, quantity: number) => {
+    if (!user || !id) return;
 
     setLoadingItemId(id);
     try {
       const cartRef = collection(db, `users/${user.uid}/cart`);
       const item = cart.find(item => item.id === id);
       if (item) {
-        await setDoc(doc(cartRef, id.toString()), {
+        await setDoc(doc(cartRef, id), {
           ...item,
           quantity
         });
