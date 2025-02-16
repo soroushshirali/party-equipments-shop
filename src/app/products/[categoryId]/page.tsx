@@ -13,8 +13,7 @@ import { FirebaseWrapper } from '@/components/FirebaseWrapper';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function ProductsPage() {
-  const params = useParams();
-  const categoryId = params.categoryId as string;
+  const categoryId = useParams()?.categoryId as string;
   const { cart, addToCart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen, loadingItemId, isLoading } = useCart();
   const { products, loading: productsLoading, error } = useProducts(categoryId);
 
@@ -54,35 +53,57 @@ export default function ProductsPage() {
             </h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {categoryProducts.map((product) => (
-                <Card key={product.id} className="overflow-hidden">
-                  <Image 
-                    src={product.image}
-                    alt={product.name}
-                    width={215}
-                    height={215}
-                    className="w-full h-48 object-cover"
-                  />
-                  <CardContent className="p-4">
-                    <h3 className="font-bold mb-2">{product.name}</h3>
-                    <p className="text-lg mb-2">{product.price}</p>
-                    <div className="space-y-2 text-sm">
-                      {Object.entries(product.specs).map(([key, value]) => (
-                        <p key={key}>{key}: {value}</p>
-                      ))}
-                    </div>
-                    <Button 
-                      className="w-full mt-4"
-                      onClick={() => handleAddToCart(product)}
-                      disabled={loadingItemId !== null || isLoading}
+                <div key={product.id} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full">
+                  <div className="mb-4 text-center">
+                    <Link 
+                      href={`/products/${categoryId}/${product.id}`}
+                      className="text-xl font-bold text-blue-600 hover:text-blue-800 block"
                     >
-                      {loadingItemId === product.id ? (
-                        <Loader2 className="h-5 w-5 animate-spin" />
-                      ) : (
-                        'افزودن به سبد سفارش'
-                      )}
-                    </Button>
-                  </CardContent>
-                </Card>
+                      {product.name}
+                    </Link>
+                  </div>
+
+                  <Link 
+                    href={`/products/${categoryId}/${product.id}`} 
+                    className="block group mb-4"
+                  >
+                    <img 
+                      src={product.image} 
+                      alt={product.name} 
+                      className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
+                    />
+                  </Link>
+
+                  <div className="space-y-2 mb-4 flex-grow">
+                    <p className="text-sm">طول: {product.length || '-'} سانتی‌متر</p>
+                    <p className="text-sm">عرض: {product.width || '-'} سانتی‌متر</p>
+                    <p className="text-sm">ارتفاع: {product.height || '-'} سانتی‌متر</p>
+                  </div>
+
+                  <div className="mt-auto">
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-lg font-bold">{product.price} تومان</span>
+                      <Button
+                        variant="contained"
+                        onClick={() => handleAddToCart(product)}
+                        disabled={loadingItemId === product.id}
+                      >
+                        افزودن به سبد خرید
+                      </Button>
+                    </div>
+                    <Link 
+                      href={`/products/${categoryId}/${product.id}`}
+                      className="w-full block"
+                    >
+                      <Button
+                        variant="outlined"
+                        fullWidth
+                      >
+                        مشاهده جزئیات
+                      </Button>
+                    </Link>
+                  </div>
+                </div>
               ))}
             </div>
           </div>

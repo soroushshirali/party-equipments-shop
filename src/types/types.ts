@@ -1,17 +1,21 @@
 export interface ProductSpec {
-    width: string;
-    height: string;
-    weight: string;
+    width: number;
+    height: number;
+    weight: number;
+    length: number;
   }
   
   export interface Product {
-    id: number;
+    id: string;
     name: string;
-    price: string;
-    specs: ProductSpec;
+    price: number;
     image: string;
-    quantity?: number;
+    originalImage: string;
+    categoryId: string;
     categoryTitle: string;
+    description?: string;
+    specs: ProductSpec;
+    quantity?: number;
   }
   
   export interface ProductCategory {
