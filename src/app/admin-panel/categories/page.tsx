@@ -23,10 +23,12 @@ import {
 import { Edit, Delete, Add, ArrowBack } from '@mui/icons-material';
 import { ChromePicker } from 'react-color';
 import { db, storage } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
 import { CategoryGroup, CategoryItem } from '@/types/types';
 import { ref, uploadBytes, getDownloadURL, deleteObject, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
+import Link from 'next/link';
+import { FirebaseWrapper } from '@/components/FirebaseWrapper';
 
 // Add this function to resize the image
 async function resizeImage(file: File): Promise<Blob> {
@@ -252,41 +254,47 @@ export default function CategoryManagement() {
   };
 
   const handleDeleteItem = async (groupId: string, item: CategoryItem) => {
-    if (window.confirm('آیا از حذف این دسته‌بندی اطمینان دارید؟')) {
-      try {
-        // Try to delete the image first
+    try {
+      // Check if any products use this category
+      const productsRef = collection(db, 'products');
+      const q = query(productsRef, where('categoryId', '==', item.categoryId));
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        alert('لطفاً ابتدا تمام محصولات مرتبط با این دسته‌بندی را حذف کنید');
+        return;
+      }
+
+      if (window.confirm('آیا از حذف این دسته‌بندی اطمینان دارید؟')) {
+        // Delete image and category as before
         if (item.image) {
           try {
             const imageRef = ref(storage, item.image);
             await deleteObject(imageRef);
-          } catch (error: any) {
-            // Just log the error and continue with category deletion
-            console.log('Error deleting image:', error.message);
+          } catch (error) {
+            console.log('Error deleting image:', error);
           }
         }
 
-        // Find the group and remove the item from it
         const group = groups.find(g => g.id === groupId);
         if (!group) return;
 
         const updatedItems = group.items.filter(i => i.categoryId !== item.categoryId);
         
-        // Update the group document with the new items array
         await setDoc(doc(db, 'categories', groupId), {
           ...group,
           items: updatedItems
         });
         
-        // Update local state
         setGroups(prevGroups => 
           prevGroups.map(g => 
             g.id === groupId ? { ...g, items: updatedItems } : g
           )
         );
-      } catch (error) {
-        console.error('Error deleting item:', error);
-        alert('خطا در حذف دسته‌بندی');
       }
+    } catch (error) {
+      console.error('Error deleting item:', error);
+      alert('خطا در حذف دسته‌بندی');
     }
   };
 
@@ -401,193 +409,196 @@ export default function CategoryManagement() {
   if (loading || !user || !isAdmin) return null;
 
   return (
-    <div className="p-6">
-      <div className="flex items-center justify-between gap-4 mb-6">
-        <div className="flex items-center gap-4">
-          <IconButton onClick={() => router.push('/admin-panel')}>
-            <ArrowBack />
-          </IconButton>
-          <h1 className="text-2xl font-bold">مدیریت دسته‌بندی‌ها</h1>
+    <FirebaseWrapper>
+      <div dir="rtl" className="p-6">
+        <div className="mb-4">
+          <Link href="/admin-panel" className="text-blue-500 hover:underline">
+            بازگشت به پنل مدیریت
+          </Link>
         </div>
-        <Button
-          variant="contained"
-          startIcon={<Add />}
-          onClick={() => {
-            setSelectedGroup(null);
-            setGroupTitle('');
-            setSelectedColor('#000000');
-            setIsGroupDialogOpen(true);
-          }}
-        >
-          افزودن گروه جدید
-        </Button>
-      </div>
 
-      {groups.map((group) => (
-        <div key={group.id} className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center gap-4">
-              <h2 className="text-xl font-bold">{group.groupTitle}</h2>
-              <div 
-                className="w-6 h-6 rounded-full border"
-                style={{ backgroundColor: group.groupBorderColor }}
-              />
-            </div>
-            <div>
-              <IconButton onClick={() => handleEditGroup(group)}>
-                <Edit />
-              </IconButton>
-              <IconButton onClick={() => handleDeleteGroup(group.id!)} color="error">
-                <Delete />
-              </IconButton>
-            </div>
-          </div>
-
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold">مدیریت دسته‌بندی‌ها</h1>
           <Button
             variant="contained"
             startIcon={<Add />}
-            onClick={() => handleAddItem(group)}
-            className="mb-4"
+            onClick={() => {
+              setSelectedGroup(null);
+              setGroupTitle('');
+              setSelectedColor('#000000');
+              setIsGroupDialogOpen(true);
+            }}
           >
-            افزودن آیتم جدید
+            افزودن گروه جدید
           </Button>
-
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>تصویر</TableCell>
-                  <TableCell>عنوان</TableCell>
-                  <TableCell>عملیات</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {group.items.map((item) => (
-                  <TableRow key={item.categoryId}>
-                    <TableCell>
-                      <img 
-                        src={item.image || '/api/placeholder/50/50'} 
-                        alt={item.title}
-                        className="w-16 h-16 object-cover rounded"
-                      />
-                    </TableCell>
-                    <TableCell>{item.title}</TableCell>
-                    <TableCell>
-                      <IconButton onClick={() => handleEditItem(group, item)}>
-                        <Edit />
-                      </IconButton>
-                      <IconButton 
-                        onClick={() => handleDeleteItem(group.id!, item)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
         </div>
-      ))}
 
-      {/* Group Edit Dialog */}
-      <Dialog 
-        open={isGroupDialogOpen} 
-        onClose={() => setIsGroupDialogOpen(false)}
-      >
-        <DialogTitle>
-          {selectedGroup ? 'ویرایش گروه' : 'افزودن گروه جدید'}
-        </DialogTitle>
-        <DialogContent>
-          <div className="space-y-4 mt-4">
-            <TextField
-              fullWidth
-              label="نام گروه"
-              value={groupTitle}
-              onChange={(e) => setGroupTitle(e.target.value)}
-            />
-            <div>
-              <Button
-                variant="outlined"
-                onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
-              >
-                انتخاب رنگ حاشیه برای همه دسته‌ها
-              </Button>
-              {isColorPickerOpen && (
-                <div className="absolute z-10">
-                  <ChromePicker
-                    color={selectedColor}
-                    onChange={(color) => setSelectedColor(color.hex)}
+        {groups.map((group) => (
+          <div key={group.id} className="mb-8">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-4">
+                <h2 className="text-xl font-bold">{group.groupTitle}</h2>
+                <div 
+                  className="w-6 h-6 rounded-full border"
+                  style={{ backgroundColor: group.groupBorderColor }}
+                />
+              </div>
+              <div>
+                <IconButton onClick={() => handleEditGroup(group)}>
+                  <Edit />
+                </IconButton>
+                <IconButton onClick={() => handleDeleteGroup(group.id!)} color="error">
+                  <Delete />
+                </IconButton>
+              </div>
+            </div>
+
+            <Button
+              variant="contained"
+              startIcon={<Add />}
+              onClick={() => handleAddItem(group)}
+              className="mb-4"
+            >
+              افزودن آیتم جدید
+            </Button>
+
+            <TableContainer component={Paper}>
+              <Table>
+                <TableHead>
+                  <TableRow>
+                    <TableCell>تصویر</TableCell>
+                    <TableCell>عنوان</TableCell>
+                    <TableCell>عملیات</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {group.items.map((item) => (
+                    <TableRow key={item.categoryId}>
+                      <TableCell>
+                        <img 
+                          src={item.image || '/api/placeholder/50/50'} 
+                          alt={item.title}
+                          className="w-16 h-16 object-cover rounded"
+                        />
+                      </TableCell>
+                      <TableCell>{item.title}</TableCell>
+                      <TableCell>
+                        <IconButton onClick={() => handleEditItem(group, item)}>
+                          <Edit />
+                        </IconButton>
+                        <IconButton 
+                          onClick={() => handleDeleteItem(group.id!, item)}
+                          color="error"
+                        >
+                          <Delete />
+                        </IconButton>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+          </div>
+        ))}
+
+        {/* Group Edit Dialog */}
+        <Dialog 
+          open={isGroupDialogOpen} 
+          onClose={() => setIsGroupDialogOpen(false)}
+        >
+          <DialogTitle>
+            {selectedGroup ? 'ویرایش گروه' : 'افزودن گروه جدید'}
+          </DialogTitle>
+          <DialogContent>
+            <div className="space-y-4 mt-4">
+              <TextField
+                fullWidth
+                label="نام گروه"
+                value={groupTitle}
+                onChange={(e) => setGroupTitle(e.target.value)}
+              />
+              <div>
+                <Button
+                  variant="outlined"
+                  onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
+                >
+                  انتخاب رنگ حاشیه برای همه دسته‌ها
+                </Button>
+                {isColorPickerOpen && (
+                  <div className="absolute z-10">
+                    <ChromePicker
+                      color={selectedColor}
+                      onChange={(color) => setSelectedColor(color.hex)}
+                    />
+                  </div>
+                )}
+              </div>
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsGroupDialogOpen(false)}>انصراف</Button>
+            <Button onClick={handleSaveGroup} variant="contained">
+              ذخیره
+            </Button>
+          </DialogActions>
+        </Dialog>
+
+        {/* Item Dialog */}
+        <Dialog 
+          open={isItemDialogOpen} 
+          onClose={() => setIsItemDialogOpen(false)}
+        >
+          <DialogTitle>
+            {editingItem ? 'ویرایش آیتم' : 'افزودن آیتم جدید'}
+          </DialogTitle>
+          <DialogContent>
+            <div className="space-y-4 mt-4">
+              <TextField
+                fullWidth
+                label="عنوان آیتم"
+                value={itemTitle}
+                onChange={(e) => setItemTitle(e.target.value)}
+              />
+              <input
+                type="file"
+                accept="image/*"
+                onChange={handleImageChange}
+                className="w-full"
+              />
+              {isUploading && (
+                <div className="w-full">
+                  <LinearProgress 
+                    variant="determinate" 
+                    value={uploadProgress} 
+                    className="mb-2"
                   />
+                  <Typography variant="body2" color="textSecondary">
+                    {Math.round(uploadProgress)}%
+                  </Typography>
                 </div>
               )}
-            </div>
-          </div>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsGroupDialogOpen(false)}>انصراف</Button>
-          <Button onClick={handleSaveGroup} variant="contained">
-            ذخیره
-          </Button>
-        </DialogActions>
-      </Dialog>
-
-      {/* Item Dialog */}
-      <Dialog 
-        open={isItemDialogOpen} 
-        onClose={() => setIsItemDialogOpen(false)}
-      >
-        <DialogTitle>
-          {editingItem ? 'ویرایش آیتم' : 'افزودن آیتم جدید'}
-        </DialogTitle>
-        <DialogContent>
-          <div className="space-y-4 mt-4">
-            <TextField
-              fullWidth
-              label="عنوان آیتم"
-              value={itemTitle}
-              onChange={(e) => setItemTitle(e.target.value)}
-            />
-            <input
-              type="file"
-              accept="image/*"
-              onChange={handleImageChange}
-              className="w-full"
-            />
-            {isUploading && (
-              <div className="w-full">
-                <LinearProgress 
-                  variant="determinate" 
-                  value={uploadProgress} 
-                  className="mb-2"
+              {(imagePreview || itemImage) && (
+                <img 
+                  src={imagePreview || itemImage} 
+                  alt="Preview" 
+                  className="w-32 h-32 object-cover rounded"
                 />
-                <Typography variant="body2" color="textSecondary">
-                  {Math.round(uploadProgress)}%
-                </Typography>
-              </div>
-            )}
-            {(imagePreview || itemImage) && (
-              <img 
-                src={imagePreview || itemImage} 
-                alt="Preview" 
-                className="w-32 h-32 object-cover rounded"
-              />
-            )}
-          </div>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => setIsItemDialogOpen(false)}>انصراف</Button>
-          <Button 
-            onClick={handleSaveItem}
-            variant="contained" 
-            color="primary"
-            disabled={isUploading || !itemTitle}
-          >
-            {isUploading ? 'در حال آپلود...' : 'ذخیره'}
-          </Button>
-        </DialogActions>
-      </Dialog>
-    </div>
+              )}
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsItemDialogOpen(false)}>انصراف</Button>
+            <Button 
+              onClick={handleSaveItem}
+              variant="contained" 
+              color="primary"
+              disabled={isUploading || !itemTitle}
+            >
+              {isUploading ? 'در حال آپلود...' : 'ذخیره'}
+            </Button>
+          </DialogActions>
+        </Dialog>
+      </div>
+    </FirebaseWrapper>
   );
 } 

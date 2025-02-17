@@ -88,12 +88,6 @@ export default function ProductsPage() {
                             <span className="w-24 text-gray-600">وزن:</span>
                             <span>{`${product.specs.weight} کیلوگرم`}</span>
                           </div>
-                          {product.description && (
-                            <div className="flex">
-                              <span className="w-24 text-gray-600">توضیحات:</span>
-                              <span>{product.description}</span>
-                            </div>
-                          )}
                         </div>
                       </div>
                     </div>

@@ -11,8 +11,12 @@ import { ImageViewer } from '@/components/ImageViewer';
 
 export default function ProductDetails() {
   const params = useParams();
-  const categoryId = params.categoryId as string;
-  const productId = params.productId as string;
+  const categoryId = Array.isArray(params?.categoryId) 
+    ? params.categoryId[0] 
+    : params?.categoryId ?? '';
+  const productId = Array.isArray(params?.productId)
+    ? params.productId[0]
+    : params?.productId ?? '';
   
   const { products, loading: productsLoading } = useProducts(categoryId);
   const { cart, addToCart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen, loadingItemId } = useCart();
@@ -46,7 +50,7 @@ export default function ProductDetails() {
 
         <div className="bg-white rounded-lg shadow-lg p-6 mb-6">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-            <div className="mb-6">
+            <div>
               <ImageViewer 
                 thumbnailUrl={product.image}
                 originalUrl={product.originalImage}
@@ -57,7 +61,7 @@ export default function ProductDetails() {
             <div className="space-y-4">
               <h1 className="text-2xl font-bold">{product.name}</h1>
               
-              <div className="space-y-2 bg-gray-50 p-4 rounded-lg">
+              <div className="bg-gray-50 p-4 rounded-lg">
                 <h3 className="font-semibold mb-4">مشخصات فنی:</h3>
                 <div className="space-y-2">
                   <p className="text-gray-600 flex justify-between">
@@ -79,28 +83,25 @@ export default function ProductDetails() {
                 </div>
               </div>
 
-              <div className="pt-4 border-t">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="text-2xl font-bold">{product.price.toLocaleString()} تومان</span>
-                  <Button
-                    variant="contained"
-                    onClick={() => addToCart(product)}
-                    disabled={loadingItemId === product.id}
-                    size="large"
-                  >
-                    افزودن به سبد خرید
-                  </Button>
-                </div>
+              <div className="flex justify-between items-center">
+                <span className="text-2xl font-bold">{product.price.toLocaleString()} تومان</span>
+                <Button
+                  variant="contained"
+                  onClick={() => addToCart(product)}
+                  disabled={loadingItemId === product.id}
+                  size="large"
+                >
+                  افزودن به سبد خرید
+                </Button>
               </div>
             </div>
           </div>
         </div>
 
-        {product.description && console.log('Description exists:', product.description)}
         {product.description ? (
           <div className="bg-white rounded-lg shadow-lg p-6">
             <h2 className="text-xl font-bold mb-4">توضیحات محصول:</h2>
-            <pre className="whitespace-pre-wrap text-gray-700">{JSON.stringify(product.description, null, 2)}</pre>
+            <p className="text-gray-700 whitespace-pre-wrap">{product.description}</p>
           </div>
         ) : (
           <div className="bg-white rounded-lg shadow-lg p-6">

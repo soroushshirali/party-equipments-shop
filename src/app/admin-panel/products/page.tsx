@@ -17,6 +17,7 @@ import { db, storage } from '@/lib/firebase';
 import { ref, uploadBytes, getDownloadURL, uploadBytesResumable, deleteObject } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import { Product, CategoryGroup } from '@/types/types';
+import Link from 'next/link';
 
 export default function ProductManagement() {
   const { user, isAdmin, loading } = useAuth();
@@ -282,6 +283,27 @@ export default function ProductManagement() {
     setIsDialogOpen(true);
   };
 
+  const handleCloseDialog = () => {
+    setIsDialogOpen(false);
+    setEditingProduct(null);
+    setProductData({
+      name: '',
+      price: 0,
+      image: '',
+      originalImage: '',
+      categoryId: '',
+      categoryTitle: '',
+      description: '',
+      specs: {
+        length: 0,
+        width: 0,
+        height: 0,
+        weight: 0
+      }
+    });
+    setSelectedFile(null);
+  };
+
   if (loading) return <LoadingSpinner />;
   if (!user || !isAdmin) {
     router.push('/login');
@@ -291,6 +313,12 @@ export default function ProductManagement() {
   return (
     <FirebaseWrapper>
       <div dir="rtl" className="p-6">
+        <div className="mb-4">
+          <Link href="/admin-panel" className="text-blue-500 hover:underline">
+            بازگشت به پنل مدیریت
+          </Link>
+        </div>
+
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold">مدیریت محصولات</h1>
           <Button
@@ -304,7 +332,7 @@ export default function ProductManagement() {
 
         <Dialog 
           open={isDialogOpen} 
-          onClose={() => setIsDialogOpen(false)}
+          onClose={handleCloseDialog}
           maxWidth="md"
           fullWidth
         >
@@ -426,7 +454,7 @@ export default function ProductManagement() {
             </div>
           </DialogContent>
           <DialogActions>
-            <Button onClick={() => setIsDialogOpen(false)}>انصراف</Button>
+            <Button onClick={handleCloseDialog}>انصراف</Button>
             <Button 
               onClick={handleSaveProduct}
               variant="contained"
