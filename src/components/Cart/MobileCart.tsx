@@ -48,7 +48,7 @@ export const MobileCart = ({ isOpen, onClose, items }: MobileCartProps) => {
               <span className="font-bold">{totalPrice} تومان</span>
             </div>
             <Button variant="contained" fullWidth>
-              تکمیل خرید
+              تکمیل سفارش
             </Button>
           </div>
         )}

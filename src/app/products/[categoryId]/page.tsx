@@ -92,28 +92,36 @@ export default function ProductsPage() {
                       </div>
                     </div>
 
-                    <div className="mt-auto">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-lg font-bold">{product.price} تومان</span>
+                    <div className="mt-4 space-y-3">
+                      <div className="text-right">
+                        <span className="text-xl font-bold">
+                          {product.price.toLocaleString()} تومان
+                        </span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-2">
+                        <Link href={`/products/${categoryId}/${product.id}`} className="block">
+                          <Button 
+                            variant="outlined" 
+                            size="small"
+                            fullWidth
+                          >
+                            مشاهده جزئیات
+                          </Button>
+                        </Link>
                         <Button
                           variant="contained"
                           onClick={() => handleAddToCart(product)}
                           disabled={loadingItemId === product.id}
-                        >
-                          افزودن به سبد خرید
-                        </Button>
-                      </div>
-                      <Link 
-                        href={`/products/${categoryId}/${product.id}`}
-                        className="w-full block"
-                      >
-                        <Button
-                          variant="outlined"
+                          size="small"
                           fullWidth
                         >
-                          مشاهده جزئیات
+                          {loadingItemId === product.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            'افزودن به سبد'
+                          )}
                         </Button>
-                      </Link>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

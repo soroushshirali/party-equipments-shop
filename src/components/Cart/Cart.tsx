@@ -62,7 +62,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
                   ))}
                   <div className="p-4">
                     <Button variant="contained" className="w-full">
-                      تکمیل خرید
+                      تکمیل سفارش
                     </Button>
                   </div>
                 </>
@@ -104,7 +104,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
                 <span className="font-bold">{totalPrice}</span>
               </div>
               <Button variant="contained" fullWidth>
-                تکمیل خرید
+                تکمیل سفارش
               </Button>
             </div>
           </div>
