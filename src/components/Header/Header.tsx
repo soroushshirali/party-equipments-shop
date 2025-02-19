@@ -197,7 +197,11 @@ export const Header = ({
         isOpen={isCartOpen}
         onClose={() => setIsCartOpen(false)}
         items={cart}
-      />
+      >
+        <Button variant="contained" fullWidth>
+          ارسال سفارش
+        </Button>
+      </MobileCart>
     </div>
   );
 }; 
