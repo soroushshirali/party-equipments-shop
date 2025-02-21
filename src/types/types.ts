@@ -45,3 +45,15 @@ export interface ProductSpec {
     groupBorderColor: string;
     items: CategoryItem[];
   }
+  
+  export interface Order {
+    id: string;
+    userId: string;
+    userEmail: string | null;
+    userName: string;
+    items: Product[];
+    totalPrice: number;
+    createdAt: Date;
+    status: 'pending' | 'processing' | 'completed' | 'cancelled';
+    finalized: boolean;
+  }

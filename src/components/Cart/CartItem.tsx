@@ -5,9 +5,11 @@ import { useCart } from '@/contexts/CartContext';
 
 interface CartItemProps {
   item: Product;
+  onRemove: (id: string) => Promise<void>;
+  onUpdateQuantity: (id: string, quantity: number) => Promise<void>;
 }
 
-export const CartItem = ({ item }: CartItemProps) => {
+export const CartItem = ({ item, onRemove, onUpdateQuantity }: CartItemProps) => {
   const { removeFromCart, updateQuantity, loadingItemId } = useCart();
   const isLoading = loadingItemId === item.id;
 

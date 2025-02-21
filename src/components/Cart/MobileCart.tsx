@@ -7,6 +7,7 @@ interface MobileCartProps {
   isOpen: boolean;
   onClose: () => void;
   items: Product[];
+  children?: React.ReactNode;
 }
 
 export const MobileCart = ({ isOpen, onClose, items }: MobileCartProps) => {

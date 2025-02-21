@@ -16,6 +16,7 @@ interface HeaderProps {
   isCartOpen: boolean;
   setIsCartOpen: (isOpen: boolean) => void;
   showBackButton?: boolean;
+  onSubmitOrder?: () => Promise<void>;
 }
 
 export const Header = ({
@@ -24,7 +25,8 @@ export const Header = ({
   onUpdateQuantity,
   isCartOpen,
   setIsCartOpen,
-  showBackButton
+  showBackButton,
+  onSubmitOrder
 }: HeaderProps) => {
   const { user, userData, isAdmin, signOut } = useAuth();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -39,6 +41,11 @@ export const Header = ({
         {/* Desktop Header */}
         <div className="hidden md:flex justify-between items-center p-4">
           <div className="flex items-center gap-4">
+            <Link href="/">
+              <Button>
+                خانه
+              </Button>
+            </Link>
             {showBackButton && (
               <Link href="/">
                 <Button>بازگشت به دسته‌بندی‌ها</Button>
@@ -61,6 +68,9 @@ export const Header = ({
                     </Button>
                   </Link>
                 )}
+                <Link href="/my-orders">
+                  <Button>سفارش‌های من</Button>
+                </Link>
                 <Button 
                   variant="outlined" 
                   color="error" 
@@ -129,7 +139,11 @@ export const Header = ({
 
               <div className="text-lg font-bold mb-6 pt-2">منو</div>
 
-              {/* Add About Us link at the top of mobile menu */}
+              <Link href="/" onClick={closeMobileMenu}>
+                <Button variant="text" fullWidth>
+                  خانه
+                </Button>
+              </Link>
               <Link href="/about" onClick={closeMobileMenu}>
                 <Button variant="text" fullWidth>
                   درباره ما
@@ -150,6 +164,9 @@ export const Header = ({
                       </Button>
                     </Link>
                   )}
+                  <Link href="/my-orders" onClick={closeMobileMenu}>
+                    <Button fullWidth>سفارش‌های من</Button>
+                  </Link>
                   <Button 
                     variant="outlined" 
                     color="error" 
@@ -189,6 +206,7 @@ export const Header = ({
           onUpdateQuantity={onUpdateQuantity}
           isOpen={isCartOpen}
           onToggle={() => setIsCartOpen(!isCartOpen)}
+          onSubmitOrder={onSubmitOrder}
         />
       </div>
 
