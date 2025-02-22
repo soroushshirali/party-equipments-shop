@@ -39,8 +39,6 @@ export default function ProductDetails() {
 
   return (
     <div dir="rtl">
-      <Header {...headerProps} showBackButton />
-      
       <div className="max-w-6xl mx-auto p-6">
         <div className="mb-4">
           <Link href={`/products/${categoryId}`} className="text-blue-500 hover:underline">

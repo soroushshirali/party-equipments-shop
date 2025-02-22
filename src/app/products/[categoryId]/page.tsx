@@ -35,13 +35,6 @@ export default function ProductsPage() {
   return (
     <FirebaseWrapper>
       <div dir="rtl">
-        <Header
-          cart={cart}
-          onRemoveFromCart={removeFromCart}
-          onUpdateQuantity={updateQuantity}
-          isCartOpen={isCartOpen}
-          setIsCartOpen={setIsCartOpen}
-        />
         <div className="max-w-6xl mx-auto p-6">
           <div className="mb-4">
             <Link href="/" className="text-blue-500 hover:underline">
