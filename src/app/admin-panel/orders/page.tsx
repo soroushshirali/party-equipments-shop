@@ -275,6 +275,7 @@ export default function OrdersManagement() {
           size="small"
           value={filters.userName}
           onChange={(e) => handleFilterChange('userName', e.target.value)}
+          autoFocus
           InputProps={{
             endAdornment: filters.userName && (
               <InputAdornment position="end">

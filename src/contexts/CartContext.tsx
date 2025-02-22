@@ -48,7 +48,7 @@ interface CartContextType {
 const CartContext = createContext<CartContextType | undefined>(undefined);
 
 export function CartProvider({ children }: { children: ReactNode }) {
-  const { user } = useAuth();
+  const { user, userData } = useAuth();
   const router = useRouter();
   const [cart, setCart] = useState<Product[]>([]);
   const [currentOrder, setCurrentOrder] = useState<Order | null>(null);
@@ -101,7 +101,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
           const newOrder = {
             userId: user.uid,
             userEmail: user.email,
-            userName: user.displayName || 'کاربر',
+            userName: `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || 'کاربر',
             items: [],
             totalPrice: 0,
             createdAt: new Date().toISOString(),
@@ -240,7 +240,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
       const newOrder = {
         userId: user.uid,
         userEmail: user.email,
-        userName: user.displayName || 'کاربر',
+        userName: `${userData?.firstName || ''} ${userData?.lastName || ''}`.trim() || 'کاربر',
         items: [],
         totalPrice: 0,
         createdAt: new Date().toISOString(),
