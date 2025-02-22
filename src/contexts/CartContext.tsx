@@ -16,6 +16,9 @@ import {
 } from 'firebase/firestore';
 import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
+import { useAppSelector } from '@/store/hooks';
+import { selectPendingOrders } from '@/store/ordersSlice';
+import { Notification } from '@/components/Notification';
 
 interface CartContextType {
   cart: Product[];
@@ -30,6 +33,16 @@ interface CartContextType {
   isLoading: boolean;
   loadingItemId: string | null;
   updateOrders: (userId: string) => Promise<void>;
+  notification: {
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  };
+  setNotification: (notification: {
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }) => void;
 }
 
 const CartContext = createContext<CartContextType | undefined>(undefined);
@@ -42,6 +55,21 @@ export function CartProvider({ children }: { children: ReactNode }) {
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
   const [loadingItemId, setLoadingItemId] = useState<string | null>(null);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error' | 'warning' | 'info';
+  }>({
+    open: false,
+    message: '',
+    severity: 'success'
+  });
+  const pendingOrders = useAppSelector(selectPendingOrders);
+
+  // Add helper function
+  const calculateTotalPrice = (items: Product[]) => {
+    return items.reduce((sum, item) => sum + (item.price * (item.quantity || 1)), 0);
+  };
 
   useEffect(() => {
     async function loadCurrentOrder() {
@@ -53,7 +81,6 @@ export function CartProvider({ children }: { children: ReactNode }) {
 
       setIsLoading(true);
       try {
-        // Get non-finalized order for this user
         const ordersRef = collection(db, 'orders');
         const q = query(
           ordersRef, 
@@ -65,25 +92,28 @@ export function CartProvider({ children }: { children: ReactNode }) {
         if (!snapshot.empty) {
           const orderData = {
             id: snapshot.docs[0].id,
-            ...snapshot.docs[0].data()
+            ...snapshot.docs[0].data(),
+            createdAt: snapshot.docs[0].data().createdAt.toDate().toISOString() // Convert to ISO string
           } as Order;
           setCurrentOrder(orderData);
           setCart(orderData.items);
         } else {
-          // Create a new order if none exists
           const newOrder = {
             userId: user.uid,
             userEmail: user.email,
             userName: user.displayName || 'کاربر',
             items: [],
             totalPrice: 0,
-            createdAt: new Date(),
-            status: 'pending',
+            createdAt: new Date().toISOString(),
+            status: 'pending' as const,
             finalized: false
           };
           
-          const docRef = await addDoc(collection(db, 'orders'), newOrder);
-          setCurrentOrder({ ...newOrder, id: docRef.id });
+          const docRef = await addDoc(collection(db, 'orders'), {
+            ...newOrder,
+            createdAt: new Date()
+          });
+          setCurrentOrder({ ...newOrder, id: docRef.id } as Order);
           setCart([]);
         }
       } catch (error) {
@@ -97,29 +127,56 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const addToCart = async (product: Product) => {
-    if (!user || !currentOrder) return;
+    if (!user) return;
 
-    setLoadingItemId(product.id);
     try {
-      const updatedItems = [...cart];
-      const existingItemIndex = cart.findIndex(item => item.id === product.id);
+      setLoadingItemId(product.id);
 
-      if (existingItemIndex >= 0) {
-        updatedItems[existingItemIndex].quantity = (updatedItems[existingItemIndex].quantity || 1) + 1;
-      } else {
-        updatedItems.push({ ...product, quantity: 1 });
+      // Check pending orders from Redux store
+      if (pendingOrders.length > 0) {
+        setNotification({
+          open: true,
+          message: 'شما یک سفارش در انتظار تایید دارید. می‌توانید از صفحه سفارش‌های من آن را به سبد خرید برگردانید.',
+          severity: 'warning'
+        });
+        return;
       }
 
-      const totalPrice = updatedItems.reduce((sum, item) => 
-        sum + (item.price * (item.quantity || 1)), 0
-      );
+      // If no pending orders, proceed with adding to cart
+      const existingItemIndex = cart.findIndex(item => item.id === product.id);
 
-      await updateDoc(doc(db, 'orders', currentOrder.id), {
-        items: updatedItems,
-        totalPrice
+      if (existingItemIndex > -1) {
+        // Update quantity if item exists
+        const updatedCart = [...cart];
+        updatedCart[existingItemIndex].quantity = (updatedCart[existingItemIndex].quantity || 1) + 1;
+        setCart(updatedCart);
+
+        if (currentOrder) {
+          await updateDoc(doc(db, 'orders', currentOrder.id), {
+            items: updatedCart,
+            totalPrice: calculateTotalPrice(updatedCart)
+          });
+        }
+      } else {
+        // Add new item
+        const newItem = { ...product, quantity: 1 };
+        const newCart = [...cart, newItem];
+        setCart(newCart);
+
+        if (currentOrder) {
+          await updateDoc(doc(db, 'orders', currentOrder.id), {
+            items: newCart,
+            totalPrice: calculateTotalPrice(newCart)
+          });
+        }
+      }
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      setNotification({
+        open: true,
+        message: 'خطا در افزودن به سبد خرید',
+        severity: 'error'
       });
-
-      setCart(updatedItems);
     } finally {
       setLoadingItemId(null);
     }
@@ -186,12 +243,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
         userName: user.displayName || 'کاربر',
         items: [],
         totalPrice: 0,
-        createdAt: new Date(),
+        createdAt: new Date().toISOString(),
         status: 'pending' as const,
         finalized: false
       };
 
-      const docRef = await addDoc(collection(db, 'orders'), newOrder);
+      const docRef = await addDoc(collection(db, 'orders'), {
+        ...newOrder,
+        createdAt: new Date()
+      });
       setCurrentOrder({ ...newOrder, id: docRef.id } as Order);
       setCart([]);
     } catch (error) {
@@ -247,9 +307,17 @@ export function CartProvider({ children }: { children: ReactNode }) {
       setIsCartOpen,
       isLoading,
       loadingItemId,
-      updateOrders
+      updateOrders,
+      notification,
+      setNotification
     }}>
       {children}
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+      />
     </CartContext.Provider>
   );
 }

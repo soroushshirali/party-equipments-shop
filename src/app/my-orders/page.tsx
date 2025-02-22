@@ -40,12 +40,6 @@ export default function MyOrdersPage() {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    if (user && orders.length === 0) {
-      dispatch(fetchOrders(user.uid));
-    }
-  }, [user, dispatch, orders.length]);
-
   const handleReturnToCart = async (orderId: string) => {
     if (!user) return;
     

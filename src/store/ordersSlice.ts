@@ -2,6 +2,7 @@ import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Order } from '@/types/types';
+import { RootState } from '@/store/store';
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
@@ -60,4 +61,8 @@ const ordersSlice = createSlice({
   }
 });
 
-export default ordersSlice.reducer; 
+export default ordersSlice.reducer;
+
+// Add selector
+export const selectPendingOrders = (state: RootState) => 
+  state.orders.items.filter(order => order.status === 'pending' && order.finalized); 
