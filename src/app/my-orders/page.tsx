@@ -90,39 +90,63 @@ export default function MyOrdersPage() {
           <p>هنوز سفارشی ثبت نکرده‌اید</p>
         </div>
       ) : (
-        <TableContainer component={Paper}>
-          <Table>
+        <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+          <Table stickyHeader>
             <TableHead>
               <TableRow>
+                <TableCell 
+                  sx={{ 
+                    position: 'sticky', 
+                    right: 0, 
+                    background: 'white',
+                    zIndex: 1,
+                    borderLeft: '1px solid rgba(224, 224, 224, 1)',
+                    padding: '8px',
+                    width: '1%',
+                    whiteSpace: 'nowrap'
+                  }}
+                >
+                  عملیات
+                </TableCell>
+                <TableCell>وضعیت</TableCell>
                 <TableCell>شماره سفارش</TableCell>
                 <TableCell>تاریخ</TableCell>
                 <TableCell>تعداد اقلام</TableCell>
                 <TableCell>مبلغ کل</TableCell>
-                <TableCell>وضعیت</TableCell>
-                <TableCell>عملیات</TableCell>
               </TableRow>
             </TableHead>
             <TableBody>
               {orders.map((order) => (
                 <TableRow key={order.id}>
-                  <TableCell>{order.id.slice(0, 8)}</TableCell>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString('fa-IR')}
-                  </TableCell>
-                  <TableCell>{order.items.length}</TableCell>
-                  <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
-                  <TableCell>{statusTranslations[order.status]}</TableCell>
-                  <TableCell>
+                  <TableCell
+                    sx={{ 
+                      position: 'sticky', 
+                      right: 0, 
+                      background: 'white',
+                      zIndex: 1,
+                      borderLeft: '1px solid rgba(224, 224, 224, 1)',
+                      padding: '8px',
+                      width: '1%',
+                      whiteSpace: 'nowrap'
+                    }}
+                  >
                     {order.status === 'pending' && (
                       <Button
                         variant="outlined"
                         size="small"
                         onClick={() => handleReturnToCart(order.id)}
                       >
-                        برگشت به سبد خرید
+                        برگرداندن به سبد خرید
                       </Button>
                     )}
                   </TableCell>
+                  <TableCell>{statusTranslations[order.status]}</TableCell>
+                  <TableCell>{order.id.slice(0, 8)}</TableCell>
+                  <TableCell>
+                    {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                  </TableCell>
+                  <TableCell>{order.items.length}</TableCell>
+                  <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
                 </TableRow>
               ))}
             </TableBody>

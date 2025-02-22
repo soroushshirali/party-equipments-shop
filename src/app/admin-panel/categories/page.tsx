@@ -505,37 +505,44 @@ export default function CategoryManagement() {
         <Dialog 
           open={isGroupDialogOpen} 
           onClose={() => setIsGroupDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
         >
           <DialogTitle>
             {selectedGroup ? 'ویرایش گروه' : 'افزودن گروه جدید'}
           </DialogTitle>
-          <DialogContent>
-            <div className="space-y-4 mt-4">
-              <TextField
-                fullWidth
-                label="نام گروه"
-                value={groupTitle}
-                onChange={(e) => setGroupTitle(e.target.value)}
-              />
-              <div>
-                <Button
-                  variant="outlined"
-                  onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
-                >
-                  انتخاب رنگ حاشیه برای همه دسته‌ها
-                </Button>
-                {isColorPickerOpen && (
-                  <div className="absolute z-10">
-                    <ChromePicker
-                      color={selectedColor}
-                      onChange={(color) => setSelectedColor(color.hex)}
-                    />
-                  </div>
-                )}
-              </div>
+          <DialogContent sx={{ 
+            minHeight: '40vh',
+            '& .MuiTextField-root': { my: 1.5 }
+          }}>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="نام گروه"
+              type="text"
+              fullWidth
+              value={groupTitle}
+              onChange={(e) => setGroupTitle(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+            <div>
+              <Button
+                variant="outlined"
+                onClick={() => setIsColorPickerOpen(!isColorPickerOpen)}
+              >
+                انتخاب رنگ حاشیه برای همه دسته‌ها
+              </Button>
+              {isColorPickerOpen && (
+                <div className="absolute z-10">
+                  <ChromePicker
+                    color={selectedColor}
+                    onChange={(color) => setSelectedColor(color.hex)}
+                  />
+                </div>
+              )}
             </div>
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 2 }}>
             <Button onClick={() => setIsGroupDialogOpen(false)}>انصراف</Button>
             <Button onClick={handleSaveGroup} variant="contained">
               ذخیره
@@ -547,46 +554,53 @@ export default function CategoryManagement() {
         <Dialog 
           open={isItemDialogOpen} 
           onClose={() => setIsItemDialogOpen(false)}
+          maxWidth="md"
+          fullWidth
         >
           <DialogTitle>
             {editingItem ? 'ویرایش آیتم' : 'افزودن آیتم جدید'}
           </DialogTitle>
-          <DialogContent>
-            <div className="space-y-4 mt-4">
-              <TextField
-                fullWidth
-                label="عنوان آیتم"
-                value={itemTitle}
-                onChange={(e) => setItemTitle(e.target.value)}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleImageChange}
-                className="w-full"
-              />
-              {isUploading && (
-                <div className="w-full">
-                  <LinearProgress 
-                    variant="determinate" 
-                    value={uploadProgress} 
-                    className="mb-2"
-                  />
-                  <Typography variant="body2" color="textSecondary">
-                    {Math.round(uploadProgress)}%
-                  </Typography>
-                </div>
-              )}
-              {(imagePreview || itemImage) && (
-                <img 
-                  src={imagePreview || itemImage} 
-                  alt="Preview" 
-                  className="w-32 h-32 object-cover rounded"
+          <DialogContent sx={{ 
+            minHeight: '40vh',
+            '& .MuiTextField-root': { my: 1.5 }
+          }}>
+            <TextField
+              autoFocus
+              margin="dense"
+              label="عنوان آیتم"
+              type="text"
+              fullWidth
+              value={itemTitle}
+              onChange={(e) => setItemTitle(e.target.value)}
+              sx={{ mb: 3 }}
+            />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleImageChange}
+              className="w-full"
+            />
+            {isUploading && (
+              <div className="w-full">
+                <LinearProgress 
+                  variant="determinate" 
+                  value={uploadProgress} 
+                  className="mb-2"
                 />
-              )}
-            </div>
+                <Typography variant="body2" color="textSecondary">
+                  {Math.round(uploadProgress)}%
+                </Typography>
+              </div>
+            )}
+            {(imagePreview || itemImage) && (
+              <img 
+                src={imagePreview || itemImage} 
+                alt="Preview" 
+                className="w-32 h-32 object-cover rounded"
+              />
+            )}
           </DialogContent>
-          <DialogActions>
+          <DialogActions sx={{ p: 2 }}>
             <Button onClick={() => setIsItemDialogOpen(false)}>انصراف</Button>
             <Button 
               onClick={handleSaveItem}

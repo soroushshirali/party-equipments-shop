@@ -210,29 +210,49 @@ export default function OrdersManagement() {
     <div className="container mx-auto p-4 md:p-8" dir="rtl">
       <h1 className="text-2xl font-bold mb-6">مدیریت سفارش‌ها</h1>
 
-      <TableContainer component={Paper}>
-        <Table>
+      <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+        <Table stickyHeader>
           <TableHead>
             <TableRow>
+              <TableCell 
+                sx={{ 
+                  position: 'sticky', 
+                  right: 0, 
+                  background: 'white',
+                  zIndex: 1,
+                  borderLeft: '1px solid rgba(224, 224, 224, 1)'
+                }}
+              >
+                عملیات
+              </TableCell>
+              <TableCell>وضعیت</TableCell>
               <TableCell>شماره سفارش</TableCell>
               <TableCell>نام کاربر</TableCell>
               <TableCell>تاریخ</TableCell>
               <TableCell>تعداد اقلام</TableCell>
               <TableCell>مبلغ کل</TableCell>
-              <TableCell>وضعیت</TableCell>
-              <TableCell>عملیات</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>{order.id.slice(0, 8)}</TableCell>
-                <TableCell>{order.userName}</TableCell>
-                <TableCell>
-                  {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                <TableCell
+                  sx={{ 
+                    position: 'sticky', 
+                    right: 0, 
+                    background: 'white',
+                    zIndex: 1,
+                    borderLeft: '1px solid rgba(224, 224, 224, 1)'
+                  }}
+                >
+                  <Button
+                    variant="outlined"
+                    size="small"
+                    onClick={() => handleViewDetails(order)}
+                  >
+                    جزئیات
+                  </Button>
                 </TableCell>
-                <TableCell>{order.items.length}</TableCell>
-                <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
                 <TableCell>
                   <FormControl size="small">
                     <Select
@@ -248,15 +268,13 @@ export default function OrdersManagement() {
                     </Select>
                   </FormControl>
                 </TableCell>
+                <TableCell>{order.id.slice(0, 8)}</TableCell>
+                <TableCell>{order.userName}</TableCell>
                 <TableCell>
-                  <Button
-                    variant="outlined"
-                    size="small"
-                    onClick={() => handleViewDetails(order)}
-                  >
-                    جزئیات
-                  </Button>
+                  {new Date(order.createdAt).toLocaleDateString('fa-IR')}
                 </TableCell>
+                <TableCell>{order.items.length}</TableCell>
+                <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
               </TableRow>
             ))}
           </TableBody>
