@@ -20,15 +20,29 @@ export default function Home() {
     return <div>Error: {error}</div>;
   }
 
+  // Group categories by groupTitle
+  const groupedCategories = categories.reduce((acc, category) => {
+    if (!acc[category.groupTitle]) {
+      acc[category.groupTitle] = [];
+    }
+    acc[category.groupTitle].push(category);
+    return acc;
+  }, {} as Record<string, typeof categories>);
+
   return (
     <div className="container mx-auto p-4 md:p-8">
-      {categories.map((category, index) => (
-        <CategorySection
-          key={category.id}
-          title={category.groupTitle}
-          items={category.items}
-          groupBorderColor={category.groupBorderColor}
-        />
+      {Object.entries(groupedCategories).map(([groupTitle, groupCategories]) => (
+        <div key={groupTitle} className="mb-8">
+          <h2 className="text-xl font-bold mb-4 text-center">{groupTitle}</h2>
+          {groupCategories.map((category) => (
+            <CategorySection
+              key={category.id}
+              title={category.title}
+              items={category.items}
+              groupBorderColor={category.groupBorderColor}
+            />
+          ))}
+        </div>
       ))}
     </div>
   );
