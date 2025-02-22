@@ -27,7 +27,7 @@ export function ClientLayout({ children }: { children: React.ReactNode }) {
       <AuthProvider>
         <CartProvider>
           <HeaderWithCart />
-          <main className="pt-16">
+          <main className="pt-6">
             {children}
           </main>
         </CartProvider>
