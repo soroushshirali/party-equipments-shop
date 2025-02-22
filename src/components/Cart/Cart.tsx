@@ -17,7 +17,7 @@ interface CartProps {
   onSubmitOrder?: () => Promise<void>;
 }
 
-export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: CartProps) => {
+export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle, onSubmitOrder }: CartProps) => {
   const { user } = useAuth();
   const { finalizeOrder, updateOrders } = useCart();
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -52,7 +52,9 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
 
     setIsSubmitting(true);
     try {
+      debugger
       await finalizeOrder();
+      await onSubmitOrder?.();
       await updateOrders(user.uid);
       
       setNotification({

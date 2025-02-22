@@ -176,7 +176,7 @@ export function CartProvider({ children }: { children: ReactNode }) {
     try {
       await updateDoc(doc(db, 'orders', currentOrder.id), {
         finalized: true,
-        status: 'pending'
+        status: 'pending' as const
       });
 
       // Create a new order for future cart items
@@ -187,15 +187,13 @@ export function CartProvider({ children }: { children: ReactNode }) {
         items: [],
         totalPrice: 0,
         createdAt: new Date(),
-        status: 'pending',
+        status: 'pending' as const,
         finalized: false
       };
-      
+
       const docRef = await addDoc(collection(db, 'orders'), newOrder);
-      setCurrentOrder({ ...newOrder, id: docRef.id });
+      setCurrentOrder({ ...newOrder, id: docRef.id } as Order);
       setCart([]);
-      
-      router.push('/my-orders');
     } catch (error) {
       console.error('Error finalizing order:', error);
       throw error;

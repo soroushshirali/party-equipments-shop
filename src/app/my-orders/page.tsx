@@ -38,39 +38,40 @@ export default function MyOrdersPage() {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'success' });
 
-  useEffect(() => {
-    async function fetchOrders() {
-      if (!user) return;
+  const fetchOrders = async () => {
+    if (!user) return;
+    
+    setIsLoading(true);
+    try {
+      const ordersRef = collection(db, 'orders');
+      const q = query(
+        ordersRef,
+        where('userId', '==', user.uid),
+        where('finalized', '==', true),
+        orderBy('createdAt', 'desc')
+      );
 
-      try {
-        const ordersRef = collection(db, 'orders');
-        const q = query(
-          ordersRef,
-          where('userId', '==', user.uid),
-          where('finalized', '==', true),
-          orderBy('createdAt', 'desc')
-        );
+      const snapshot = await getDocs(q);
+      const ordersData = snapshot.docs.map(doc => ({
+        id: doc.id,
+        ...doc.data(),
+        createdAt: doc.data().createdAt.toDate()
+      })) as Order[];
 
-        const snapshot = await getDocs(q);
-        const ordersData = snapshot.docs.map(doc => ({
-          id: doc.id,
-          ...doc.data(),
-          createdAt: doc.data().createdAt.toDate()
-        })) as Order[];
-
-        setOrders(ordersData);
-      } catch (error) {
-        console.error('Error fetching orders:', error);
-        setNotification({
-          open: true,
-          message: 'خطا در دریافت سفارش‌ها',
-          severity: 'error'
-        });
-      } finally {
-        setIsLoading(false);
-      }
+      setOrders(ordersData);
+    } catch (error) {
+      console.error('Error fetching orders:', error);
+      setNotification({
+        open: true,
+        message: 'خطا در دریافت سفارش‌ها',
+        severity: 'error'
+      });
+    } finally {
+      setIsLoading(false);
     }
+  };
 
+  useEffect(() => {
     fetchOrders();
   }, [user]);
 
@@ -94,12 +95,12 @@ export default function MyOrdersPage() {
     }
   };
 
+  const handleRemoveFromCart = async (productId: string) => {
+    await removeFromCart(productId);
+  };
+
   if (!user) {
-    return (
-      <div className="p-8 text-center">
-        <p>لطفا برای مشاهده سفارش‌ها وارد شوید</p>
-      </div>
-    );
+    return;
   }
 
   if (isLoading) {
@@ -114,10 +115,11 @@ export default function MyOrdersPage() {
     <>
       <Header 
         cart={cart}
-        onRemoveFromCart={removeFromCart}
+        onRemoveFromCart={handleRemoveFromCart}
         onUpdateQuantity={updateQuantity}
         isCartOpen={isCartOpen}
         setIsCartOpen={setIsCartOpen}
+        onSubmitOrder={fetchOrders}
       />
       <div className="container mx-auto p-4 md:p-8" dir="rtl">
         <h1 className="text-2xl font-bold mb-6">سفارش‌های من</h1>
