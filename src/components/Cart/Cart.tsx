@@ -9,6 +9,7 @@ import { useCart } from '@/contexts/CartContext';
 import { Notification } from '@/components/Notification';
 import { useAppDispatch } from '@/store/hooks';
 import { fetchOrders } from '@/store/ordersSlice';
+import { createPortal } from 'react-dom';
 
 interface CartProps {
   items: Product[];
@@ -75,6 +76,66 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
     } finally {
       setIsSubmitting(false);
     }
+  };
+
+  const MobileCart = () => {
+    if (!isOpen || window.innerWidth >= 768) return null;  // Don't show on md and larger screens
+
+    return createPortal(
+      <>
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-[9998] md:hidden" 
+          onClick={onToggle}
+        />
+        <div className="fixed inset-x-0 bottom-0 z-[9999] md:hidden">
+          <div className="bg-white rounded-t-2xl shadow-xl">
+            <div className="p-4 border-b">
+              <div className="flex justify-between items-center">
+                <h2 className="text-lg font-bold">سبد سفارش</h2>
+                <button onClick={onToggle} className="text-gray-500">
+                  ✕
+                </button>
+              </div>
+            </div>
+            <div className="max-h-[60vh] overflow-y-auto">
+              {items.length === 0 ? (
+                <p className="p-4 text-center text-gray-500">سبد سفارش خالی است</p>
+              ) : (
+                <>
+                  {items.map(item => (
+                    <CartItem 
+                      key={item.id} 
+                      item={item}
+                      onRemove={onRemove}
+                      onUpdateQuantity={onUpdateQuantity}
+                    />
+                  ))}
+                </>
+              )}
+            </div>
+            <div className="p-4 border-t bg-white">
+              <div className="flex justify-between items-center mb-4">
+                <span className="font-bold">جمع کل:</span>
+                <span className="font-bold">{totalPrice.toLocaleString()} تومان</span>
+              </div>
+              <Button 
+                variant="contained" 
+                fullWidth
+                onClick={handleSubmitOrder}
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  'ارسال سفارش'
+                )}
+              </Button>
+            </div>
+          </div>
+        </div>
+      </>,
+      document.body
+    );
   };
 
   return (
@@ -144,55 +205,8 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
           </div>
         </div>
 
-        {/* Mobile Cart Panel */}
-        {isOpen && (
-          <div className="fixed inset-0 bg-black bg-opacity-50 z-50 md:hidden">
-            <div className="fixed bottom-0 left-0 right-0 bg-white rounded-t-2xl shadow-xl">
-              <div className="p-4 border-b">
-                <div className="flex justify-between items-center">
-                  <h2 className="text-lg font-bold">سبد سفارش</h2>
-                  <button onClick={onToggle} className="text-gray-500">
-                    ✕
-                  </button>
-                </div>
-              </div>
-              <div className="max-h-[60vh] overflow-y-auto">
-                {items.length === 0 ? (
-                  <p className="p-4 text-center text-gray-500">سبد سفارش خالی است</p>
-                ) : (
-                  <>
-                    {items.map(item => (
-                      <CartItem 
-                        key={item.id} 
-                        item={item}
-                        onRemove={onRemove}
-                        onUpdateQuantity={onUpdateQuantity}
-                      />
-                    ))}
-                  </>
-                )}
-              </div>
-              <div className="p-4 border-t bg-white">
-                <div className="flex justify-between items-center mb-4">
-                  <span className="font-bold">جمع کل:</span>
-                  <span className="font-bold">{totalPrice.toLocaleString()} تومان</span>
-                </div>
-                <Button 
-                  variant="contained" 
-                  fullWidth
-                  onClick={handleSubmitOrder}
-                  disabled={isSubmitting}
-                >
-                  {isSubmitting ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    'ارسال سفارش'
-                  )}
-                </Button>
-              </div>
-            </div>
-          </div>
-        )}
+        {/* Mobile Cart */}
+        <MobileCart />
       </div>
       <Notification
         open={notification.open}
