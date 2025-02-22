@@ -1,5 +1,5 @@
 "use client";
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import {
   Table,
   TableBody,
@@ -21,13 +21,21 @@ import {
   List,
   ListItem,
   ListItemText,
-  Divider
+  Divider,
+  TextField,
+  IconButton,
+  InputAdornment,
+  Stack,
+  InputLabel,
+  Select as MuiSelect
 } from '@mui/material';
-import { collection, query, orderBy, getDocs, doc, updateDoc, limit, startAfter, where } from 'firebase/firestore';
+import { collection, query, orderBy, getDocs, doc, updateDoc, limit, startAfter, where, and, or } from 'firebase/firestore';
 import { db } from '@/lib/firebase';
 import { Order } from '@/types/types';
 import { useAuth } from '@/contexts/AuthContext';
 import { Notification } from '@/components/Notification';
+import { Search, Clear } from '@mui/icons-material';
+import debounce from 'lodash/debounce';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -61,6 +69,53 @@ export default function OrdersManagement() {
     };
   }>({});
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+  const [filters, setFilters] = useState({
+    userName: '',
+    status: ''
+  });
+  const [debouncedUserName, setDebouncedUserName] = useState('');
+
+  const debouncedSetUserName = useCallback(
+    debounce((value: string) => {
+      setDebouncedUserName(value);
+    }, 500),
+    []
+  );
+
+  const handleFilterChange = (field: string, value: string) => {
+    if (field === 'userName') {
+      setFilters(prev => ({ ...prev, userName: value }));
+      debouncedSetUserName(value);
+    } else {
+      setFilters(prev => ({ ...prev, [field]: value }));
+      setPage(0);
+      setPageData({});
+    }
+  };
+
+  const clearFilters = () => {
+    setFilters({
+      userName: '',
+      status: ''
+    });
+    setDebouncedUserName('');
+    setPage(0);
+    setPageData({});
+  };
+
+  const buildQuery = (baseQuery: any) => {
+    let conditions = [where('finalized', '==', true)];
+
+    if (debouncedUserName) {
+      conditions.push(where('userName', '>=', debouncedUserName));
+      conditions.push(where('userName', '<=', debouncedUserName + '\uf8ff'));
+    }
+    if (filters.status) {
+      conditions.push(where('status', '==', filters.status));
+    }
+
+    return query(baseQuery, ...conditions, orderBy('createdAt', 'desc'), limit(ITEMS_PER_PAGE));
+  };
 
   const fetchOrders = async () => {
     if (!isAdmin) return;
@@ -68,19 +123,19 @@ export default function OrdersManagement() {
     try {
       setLoading(true);
       const ordersRef = collection(db, 'orders');
-      const q = query(
-        ordersRef,
-        where('finalized', '==', true),
-        orderBy('createdAt', 'desc'),
-        limit(ITEMS_PER_PAGE)
-      );
+      const q = buildQuery(ordersRef);
+      setPage(0);
+      setPageData({});
 
       const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate().toISOString()
-      })) as Order[];
+      const ordersData = snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt.toDate().toISOString()
+        } as Order;
+      });
 
       setOrders(ordersData);
       setPageData({
@@ -132,11 +187,14 @@ export default function OrdersManagement() {
       );
 
       const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate().toISOString()
-      })) as Order[];
+      const ordersData = snapshot.docs.map(doc => {
+        const data = doc.data() as any;
+        return {
+          id: doc.id,
+          ...data,
+          createdAt: data.createdAt.toDate().toISOString()
+        } as Order;
+      });
 
       setOrders(ordersData);
       setPageData(prev => ({
@@ -192,7 +250,7 @@ export default function OrdersManagement() {
     if (isAdmin) {
       fetchOrders();
     }
-  }, [isAdmin]);
+  }, [debouncedUserName, filters.status, isAdmin]);
 
   if (!isAdmin) {
     return <div>دسترسی محدود شده است</div>;
@@ -209,6 +267,46 @@ export default function OrdersManagement() {
   return (
     <div className="container mx-auto p-4 md:p-8" dir="rtl">
       <h1 className="text-2xl font-bold mb-6">مدیریت سفارش‌ها</h1>
+
+      {/* Filters */}
+      <Stack direction="row" spacing={2} className="mb-6" alignItems="center">
+        <TextField
+          label="نام کاربر"
+          size="small"
+          value={filters.userName}
+          onChange={(e) => handleFilterChange('userName', e.target.value)}
+          InputProps={{
+            endAdornment: filters.userName && (
+              <InputAdornment position="end">
+                <IconButton size="small" onClick={() => handleFilterChange('userName', '')}>
+                  <Clear />
+                </IconButton>
+              </InputAdornment>
+            )
+          }}
+        />
+        <FormControl size="small" sx={{ minWidth: 120 }}>
+          <InputLabel>وضعیت</InputLabel>
+          <MuiSelect
+            value={filters.status}
+            label="وضعیت"
+            onChange={(e) => handleFilterChange('status', e.target.value)}
+          >
+            <MenuItem value="">همه</MenuItem>
+            {Object.entries(statusTranslations).map(([value, label]) => (
+              <MenuItem key={value} value={value}>{label}</MenuItem>
+            ))}
+          </MuiSelect>
+        </FormControl>
+        <Button
+          variant="outlined"
+          size="small"
+          onClick={clearFilters}
+          disabled={!Object.values(filters).some(Boolean)}
+        >
+          پاک کردن فیلترها
+        </Button>
+      </Stack>
 
       <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
         <Table stickyHeader>
