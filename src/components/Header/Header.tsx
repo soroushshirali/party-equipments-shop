@@ -60,6 +60,9 @@ export const Header = ({
                   <Button>
                     {userData?.firstName} {userData?.lastName}
                   </Button>
+                </Link>                
+                <Link href="/my-orders">
+                  <Button>سفارش‌های من</Button>
                 </Link>
                 {isAdmin && (
                   <Link href="/admin-panel">
@@ -68,9 +71,6 @@ export const Header = ({
                     </Button>
                   </Link>
                 )}
-                <Link href="/my-orders">
-                  <Button>سفارش‌های من</Button>
-                </Link>
                 <Button 
                   variant="outlined" 
                   color="error" 
