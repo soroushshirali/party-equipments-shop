@@ -88,69 +88,60 @@ export default function MyOrdersPage() {
   }
 
   return (
-    <>
-      <Header 
-        cart={cart}
-        onRemoveFromCart={handleRemoveFromCart}
-        onUpdateQuantity={updateQuantity}
-        isCartOpen={isCartOpen}
-        setIsCartOpen={setIsCartOpen}
-      />
-      <div className="container mx-auto p-4 md:p-8" dir="rtl">
-        <h1 className="text-2xl font-bold mb-6">سفارش‌های من</h1>
-        
-        {orders.length === 0 ? (
-          <div className="text-center p-8 bg-gray-50 rounded-lg">
-            <p>هنوز سفارشی ثبت نکرده‌اید</p>
-          </div>
-        ) : (
-          <TableContainer component={Paper}>
-            <Table>
-              <TableHead>
-                <TableRow>
-                  <TableCell>شماره سفارش</TableCell>
-                  <TableCell>تاریخ</TableCell>
-                  <TableCell>تعداد اقلام</TableCell>
-                  <TableCell>مبلغ کل</TableCell>
-                  <TableCell>وضعیت</TableCell>
-                  <TableCell>عملیات</TableCell>
+    <div className="container mx-auto p-4 md:p-8" dir="rtl">
+      <h1 className="text-2xl font-bold mb-6">سفارش‌های من</h1>
+      
+      {orders.length === 0 ? (
+        <div className="text-center p-8 bg-gray-50 rounded-lg">
+          <p>هنوز سفارشی ثبت نکرده‌اید</p>
+        </div>
+      ) : (
+        <TableContainer component={Paper}>
+          <Table>
+            <TableHead>
+              <TableRow>
+                <TableCell>شماره سفارش</TableCell>
+                <TableCell>تاریخ</TableCell>
+                <TableCell>تعداد اقلام</TableCell>
+                <TableCell>مبلغ کل</TableCell>
+                <TableCell>وضعیت</TableCell>
+                <TableCell>عملیات</TableCell>
+              </TableRow>
+            </TableHead>
+            <TableBody>
+              {orders.map((order) => (
+                <TableRow key={order.id}>
+                  <TableCell>{order.id.slice(0, 8)}</TableCell>
+                  <TableCell>
+                    {new Date(order.createdAt).toLocaleDateString('fa-IR')}
+                  </TableCell>
+                  <TableCell>{order.items.length}</TableCell>
+                  <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
+                  <TableCell>{statusTranslations[order.status]}</TableCell>
+                  <TableCell>
+                    {order.status === 'pending' && (
+                      <Button
+                        variant="outlined"
+                        size="small"
+                        onClick={() => handleReturnToCart(order.id)}
+                      >
+                        برگشت به سبد خرید
+                      </Button>
+                    )}
+                  </TableCell>
                 </TableRow>
-              </TableHead>
-              <TableBody>
-                {orders.map((order) => (
-                  <TableRow key={order.id}>
-                    <TableCell>{order.id.slice(0, 8)}</TableCell>
-                    <TableCell>
-                      {new Date(order.createdAt).toLocaleDateString('fa-IR')}
-                    </TableCell>
-                    <TableCell>{order.items.length}</TableCell>
-                    <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
-                    <TableCell>{statusTranslations[order.status]}</TableCell>
-                    <TableCell>
-                      {order.status === 'pending' && (
-                        <Button
-                          variant="outlined"
-                          size="small"
-                          onClick={() => handleReturnToCart(order.id)}
-                        >
-                          برگشت به سبد خرید
-                        </Button>
-                      )}
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
-          </TableContainer>
-        )}
+              ))}
+            </TableBody>
+          </Table>
+        </TableContainer>
+      )}
 
-        <Notification
-          open={notification.open}
-          message={notification.message}
-          severity={notification.severity}
-          onClose={() => setNotification(prev => ({ ...prev, open: false }))}
-        />
-      </div>
-    </>
+      <Notification
+        open={notification.open}
+        message={notification.message}
+        severity={notification.severity}
+        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
+      />
+    </div>
   );
 } 

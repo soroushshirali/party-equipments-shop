@@ -1,43 +1,35 @@
 // src/app/page.tsx
 "use client";
-
-import { Header } from '@/components/Header';
+import { useEffect, useState } from 'react';
+import { CircularProgress } from '@mui/material';
 import { CategorySection } from '@/components/CategorySection';
 import { useCategories } from '@/hooks/useCategories';
-import { useCart } from '@/contexts/CartContext';
-import { FirebaseWrapper } from '@/components/FirebaseWrapper';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
 
 export default function Home() {
-  const { cart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen } = useCart();
   const { categories, loading, error } = useCategories();
 
-  if (loading) return <LoadingSpinner />;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
+  }
 
   return (
-    <FirebaseWrapper>
-      <Header
-        cart={cart}
-        onRemoveFromCart={removeFromCart}
-        onUpdateQuantity={updateQuantity}
-        isCartOpen={isCartOpen}
-        setIsCartOpen={setIsCartOpen}
-      />
-      <div className="max-w-6xl mx-auto p-6 space-y-4" dir="rtl">
-        {categories.map((group) => (
-          <div key={group.groupTitle} className="space-y-3">
-            <h1 className="text-3xl font-bold text-gray-800 text-center mt-6 mb-1">
-              {group.groupTitle}
-            </h1>
-            <CategorySection 
-              title={group.groupTitle}
-              items={group.items}
-              groupBorderColor={group.groupBorderColor}
-            />
-          </div>
-        ))}
-      </div>
-    </FirebaseWrapper>
+    <div className="container mx-auto p-4 md:p-8">
+      {categories.map((category, index) => (
+        <CategorySection
+          key={category.id}
+          title={category.groupTitle}
+          items={category.items}
+          groupBorderColor={category.groupBorderColor}
+        />
+      ))}
+    </div>
   );
 }
