@@ -18,6 +18,8 @@ import { Order } from '@/types/types';
 import { useCart } from '@/contexts/CartContext';
 import { Notification } from '@/components/Notification';
 import { Header } from '@/components/Header/Header';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { fetchOrders } from '@/store/ordersSlice';
 
 const statusTranslations = {
   'pending': 'در انتظار تایید',
@@ -28,9 +30,9 @@ const statusTranslations = {
 
 export default function MyOrdersPage() {
   const { user } = useAuth();
+  const dispatch = useAppDispatch();
+  const { items: orders, loading, error } = useAppSelector(state => state.orders);
   const { cart, removeFromCart, updateQuantity, returnOrderToCart } = useCart();
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
   const [isCartOpen, setIsCartOpen] = useState(false);
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -38,44 +40,15 @@ export default function MyOrdersPage() {
     severity: 'success' | 'error' | 'info' | 'warning';
   }>({ open: false, message: '', severity: 'success' });
 
-  const fetchOrders = async () => {
-    if (!user) return;
-    
-    setIsLoading(true);
-    try {
-      const ordersRef = collection(db, 'orders');
-      const q = query(
-        ordersRef,
-        where('userId', '==', user.uid),
-        where('finalized', '==', true),
-        orderBy('createdAt', 'desc')
-      );
-
-      const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data(),
-        createdAt: doc.data().createdAt.toDate()
-      })) as Order[];
-
-      setOrders(ordersData);
-    } catch (error) {
-      console.error('Error fetching orders:', error);
-      setNotification({
-        open: true,
-        message: 'خطا در دریافت سفارش‌ها',
-        severity: 'error'
-      });
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
   useEffect(() => {
-    fetchOrders();
-  }, [user]);
+    if (user && orders.length === 0) {
+      dispatch(fetchOrders(user.uid));
+    }
+  }, [user, dispatch, orders.length]);
 
   const handleReturnToCart = async (orderId: string) => {
+    if (!user) return;
+    
     try {
       await returnOrderToCart(orderId);
       setNotification({
@@ -83,8 +56,7 @@ export default function MyOrdersPage() {
         message: 'سفارش به سبد خرید برگشت',
         severity: 'success'
       });
-      // Remove the order from the list
-      setOrders(orders.filter(order => order.id !== orderId));
+      dispatch(fetchOrders(user.uid));
     } catch (error) {
       console.error('Error returning order to cart:', error);
       setNotification({
@@ -103,12 +75,16 @@ export default function MyOrdersPage() {
     return;
   }
 
-  if (isLoading) {
+  if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <CircularProgress />
       </div>
     );
+  }
+
+  if (error) {
+    return <div>Error: {error}</div>;
   }
 
   return (
@@ -119,7 +95,6 @@ export default function MyOrdersPage() {
         onUpdateQuantity={updateQuantity}
         isCartOpen={isCartOpen}
         setIsCartOpen={setIsCartOpen}
-        onSubmitOrder={fetchOrders}
       />
       <div className="container mx-auto p-4 md:p-8" dir="rtl">
         <h1 className="text-2xl font-bold mb-6">سفارش‌های من</h1>

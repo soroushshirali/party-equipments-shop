@@ -53,7 +53,7 @@ export interface ProductSpec {
     userName: string;
     items: Product[];
     totalPrice: number;
-    createdAt: Date;
+    createdAt: string;
     status: 'pending' | 'processing' | 'completed' | 'cancelled';
     finalized: boolean;
   }

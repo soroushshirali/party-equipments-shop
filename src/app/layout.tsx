@@ -3,6 +3,8 @@ import { Geist, Geist_Mono, Vazirmatn } from "next/font/google";
 import "./globals.css";
 import { ClientLayout } from '@/components/ClientLayout';
 import { useEffect } from 'react';
+import { Provider } from 'react-redux';
+import { store } from '@/store/store';
 
 const vazir = Vazirmatn({
   subsets: ['arabic'],
@@ -50,9 +52,11 @@ export default function RootLayout({
         <meta name="theme-color" content="#3b82f6" />
       </head>
       <body className={`${fontClasses} antialiased`}>
-        <ClientLayout>
-          {children}
-        </ClientLayout>
+        <Provider store={store}>
+          <ClientLayout>
+            {children}
+          </ClientLayout>
+        </Provider>
       </body>
     </html>
   );

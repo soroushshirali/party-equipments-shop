@@ -7,6 +7,8 @@ import { CartItem } from './CartItem';
 import { useAuth } from '@/contexts/AuthContext';
 import { useCart } from '@/contexts/CartContext';
 import { Notification } from '@/components/Notification';
+import { useAppDispatch } from '@/store/hooks';
+import { fetchOrders } from '@/store/ordersSlice';
 
 interface CartProps {
   items: Product[];
@@ -14,12 +16,12 @@ interface CartProps {
   onUpdateQuantity: (id: string, quantity: number) => Promise<void>;
   isOpen: boolean;
   onToggle: () => void;
-  onSubmitOrder?: () => Promise<void>;
 }
 
-export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle, onSubmitOrder }: CartProps) => {
+export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: CartProps) => {
   const { user } = useAuth();
   const { finalizeOrder, updateOrders } = useCart();
+  const dispatch = useAppDispatch();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [notification, setNotification] = useState<{
     open: boolean;
@@ -52,10 +54,9 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle, onSu
 
     setIsSubmitting(true);
     try {
-      debugger
       await finalizeOrder();
-      await onSubmitOrder?.();
       await updateOrders(user.uid);
+      await dispatch(fetchOrders(user.uid));
       
       setNotification({
         open: true,

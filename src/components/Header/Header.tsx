@@ -206,7 +206,6 @@ export const Header = ({
           onUpdateQuantity={onUpdateQuantity}
           isOpen={isCartOpen}
           onToggle={() => setIsCartOpen(!isCartOpen)}
-          onSubmitOrder={onSubmitOrder}
         />
       </div>
 
