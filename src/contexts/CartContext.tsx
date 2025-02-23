@@ -127,7 +127,15 @@ export function CartProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   const addToCart = async (product: Product) => {
-    if (!user) return;
+    if (!user) {
+      setNotification({
+        open: true,
+        message: ' برای افزودن به سبد خرید ابتدا وارد حساب کاربری خود شوید',
+        severity: 'warning'
+      });
+      router.push('/login');
+      return;
+    }
 
     try {
       setLoadingItemId(product.id);
