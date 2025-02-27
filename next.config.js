@@ -10,7 +10,10 @@ const nextConfig = {
   typescript: {
     ignoreBuildErrors: true,
   },
-  output: 'standalone'
+  output: 'standalone',
+  experimental: {
+    appDir: true,
+  }
 }
 
 module.exports = nextConfig 
