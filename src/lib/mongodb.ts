@@ -25,7 +25,6 @@ let cached = global.mongoose;
 async function connectToDatabase() {
   try {
     if (cached.conn) {
-      console.log('Using cached database connection');
       return cached.conn;
     }
 
@@ -37,11 +36,13 @@ async function connectToDatabase() {
         family: 4, // Use IPv4, skip trying IPv6
       };
 
+      mongoose.set('strictQuery', true);
+
       console.log('Initializing new database connection');
       cached.promise = mongoose
         .connect(MONGODB_URI, opts)
         .then((mongoose) => {
-          console.log('Database connected successfully');
+          console.log('Connected to MongoDB');
           mongoose.connection.on('error', (error) => {
             console.error('MongoDB connection error:', error);
           });
@@ -57,18 +58,10 @@ async function connectToDatabase() {
           cached.promise = null;
           throw error;
         });
-    } else {
-      console.log('Using existing connection promise');
     }
 
-    try {
-      cached.conn = await cached.promise;
-      return cached.conn;
-    } catch (error) {
-      console.error('Error while awaiting connection:', error);
-      cached.promise = null;
-      throw error;
-    }
+    cached.conn = await cached.promise;
+    return cached.conn;
   } catch (error) {
     console.error('Connection error:', error);
     cached.promise = null;

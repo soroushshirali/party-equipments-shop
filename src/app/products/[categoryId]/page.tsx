@@ -1,128 +1,164 @@
 "use client";
 
-import { Card, CardContent, Button } from '@mui/material';
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { Product } from '@/types/types';
-import { Header } from '@/components/Header/Header';
-import { useProducts } from '@/hooks/useProducts';
-import { useCart } from '@/contexts/CartContext';
+import { CircularProgress, Typography, Card, CardContent, Button, Grid } from '@mui/material';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { addToCart, selectLoadingItemId } from '@/store/cartSlice';
 import { Loader2 } from 'lucide-react';
-import Image from 'next/image';
-import { FirebaseWrapper } from '@/components/FirebaseWrapper';
-import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { Select, ListSubheader, MenuItem } from '@mui/material';
+import axios from 'axios';
+import { Product } from '@/types/types';
 
 export default function ProductsPage() {
-  const categoryId = useParams()?.categoryId as string;
-  const { cart, addToCart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen, loadingItemId, isLoading } = useCart();
-  const { products, loading: productsLoading, error } = useProducts(categoryId);
+  const { categoryId } = useParams();
+  const dispatch = useAppDispatch();
+  const loadingItemId = useAppSelector(selectLoadingItemId);
+  const [products, setProducts] = useState<Product[]>([]);
+  const [categoryTitle, setCategoryTitle] = useState('');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Fetch products for this category
+        const productsResponse = await axios.get(`/api/products?categoryId=${categoryId}`);
+        setProducts(productsResponse.data);
+
+        // Fetch all categories to find the matching one
+        const categoriesResponse = await axios.get('/api/categories');
+        const categories = categoriesResponse.data;
+        
+        // Find the category group that contains our categoryId
+        for (const category of categories) {
+          const matchingItem = category.items.find((item: any) => item.categoryId === categoryId);
+          if (matchingItem) {
+            setCategoryTitle(matchingItem.title);
+            break;
+          }
+        }
+
+      } catch (err: any) {
+        console.error('Error fetching data:', err);
+        setError(err.response?.data?.error || 'Failed to fetch data');
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (categoryId) {
+      fetchData();
+    }
+  }, [categoryId]);
 
   const handleAddToCart = async (product: Product) => {
     try {
-      await addToCart(product);
+      await dispatch(addToCart(product)).unwrap();
     } catch (error) {
-      console.error('Failed to add to cart:', error);
+      console.error('Error adding to cart:', error);
+      alert('خطا در افزودن به سبد خرید');
     }
   };
 
-  if (productsLoading || isLoading) return <LoadingSpinner />;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <CircularProgress />
+      </div>
+    );
+  }
 
-  const categoryProducts = products || [];
-  const categoryTitle = categoryProducts[0]?.categoryTitle || '';
+  if (error) {
+    return (
+      <div className="container mx-auto p-4 text-center" dir="rtl">
+        <Typography color="error">{error}</Typography>
+      </div>
+    );
+  }
 
   return (
-    <FirebaseWrapper>
-      <div dir="rtl">
+    <div dir="rtl">
+      <div className="max-w-6xl mx-auto p-6">
+        <div className="mb-4">
+          <Link href="/" className="text-blue-500 hover:underline">
+            بازگشت به دسته‌بندی‌ها
+          </Link>
+        </div>
         <div className="max-w-6xl mx-auto p-6">
-          <div className="mb-4">
-            <Link href="/" className="text-blue-500 hover:underline">
-              بازگشت به دسته‌بندی‌ها
-            </Link>
-          </div>
-          <div className="max-w-6xl mx-auto p-6">
-            <h2 className="text-2xl font-bold mb-6">
-              {categoryTitle}
-            </h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-              {categoryProducts.map((product) => (
-                <Card key={`product-${product.id}`} className="bg-white rounded-lg shadow-md p-4 flex flex-col h-full">
-                  <CardContent>
-                    <div className="mb-4 text-center">
+          <Typography variant="h4" className="mb-6">
+            {categoryTitle || 'محصولات'}
+          </Typography>
+          
+          {products.length === 0 ? (
+            <Typography variant="h6" className="text-center">
+              محصولی در این دسته‌بندی یافت نشد
+            </Typography>
+          ) : (
+            <Grid container spacing={4}>
+              {products.map((product) => (
+                <Grid item xs={12} sm={6} md={4} key={product.id}>
+                  <Card className="h-full flex flex-col">
+                    <div className="relative pt-[100%]">
+                      <img
+                        src={product.image}
+                        alt={product.name}
+                        className="absolute top-0 left-0 w-full h-full object-cover"
+                      />
+                    </div>
+                    <CardContent className="flex-grow flex flex-col">
                       <Link 
                         href={`/products/${categoryId}/${product.id}`}
-                        className="text-xl font-bold text-blue-600 hover:text-blue-800 block"
+                        className="text-xl font-bold text-blue-600 hover:text-blue-800 mb-2 block"
                       >
                         {product.name}
                       </Link>
-                    </div>
 
-                    <Link 
-                      href={`/products/${categoryId}/${product.id}`} 
-                      className="block group mb-4"
-                    >
-                      <img 
-                        src={product.image} 
-                        alt={product.name} 
-                        className="w-full h-48 object-cover rounded-lg transition-transform group-hover:scale-105"
-                      />
-                    </Link>
+                      {product.description && (
+                        <Typography variant="body2" color="text.secondary" className="mb-2">
+                          {product.description}
+                        </Typography>
+                      )}
 
-                    <div className="space-y-2 mb-4 flex-grow">
-                      <div className="mt-4">
-                        <h3 className="text-lg font-semibold mb-2">مشخصات محصول:</h3>
-                        <div className="space-y-2">
-                          <div className="flex">
-                            <span className="w-24 text-gray-600">ابعاد:</span>
-                            <span>{`${product.specs.length} × ${product.specs.width} × ${product.specs.height} سانتی‌متر`}</span>
-                          </div>
-                          <div className="flex">
-                            <span className="w-24 text-gray-600">وزن:</span>
-                            <span>{`${product.specs.weight} کیلوگرم`}</span>
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="mt-4 space-y-3">
-                      <div className="text-right">
-                        <span className="text-xl font-bold">
+                      <div className="mt-auto">
+                        <Typography variant="h6" className="mb-2">
                           {product.price.toLocaleString()} تومان
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-2">
-                        <Link href={`/products/${categoryId}/${product.id}`} className="block">
-                          <Button 
-                            variant="outlined" 
-                            size="small"
+                        </Typography>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <Link href={`/products/${categoryId}/${product.id}`}>
+                            <Button 
+                              variant="outlined" 
+                              fullWidth
+                            >
+                              مشاهده جزئیات
+                            </Button>
+                          </Link>
+                          <Button
+                            variant="contained"
+                            onClick={() => handleAddToCart(product)}
+                            disabled={loadingItemId === product.id}
                             fullWidth
                           >
-                            مشاهده جزئیات
+                            {loadingItemId === product.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              'افزودن به سبد'
+                            )}
                           </Button>
-                        </Link>
-                        <Button
-                          variant="contained"
-                          onClick={() => handleAddToCart(product)}
-                          disabled={loadingItemId === product.id}
-                          size="small"
-                          fullWidth
-                        >
-                          {loadingItemId === product.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            'افزودن به سبد'
-                          )}
-                        </Button>
+                        </div>
                       </div>
-                    </div>
-                  </CardContent>
-                </Card>
+                    </CardContent>
+                  </Card>
+                </Grid>
               ))}
-            </div>
-          </div>
+            </Grid>
+          )}
         </div>
       </div>
-    </FirebaseWrapper>
+    </div>
   );
 } 

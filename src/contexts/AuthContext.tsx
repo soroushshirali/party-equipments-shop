@@ -22,6 +22,7 @@ interface UserData {
   lastName: string;
   phone: string;
   email?: string;
+  uid: string;
 }
 
 interface AuthContextType {
@@ -54,13 +55,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const userDoc = await getDoc(doc(db, 'users', user.uid));
         const data = userDoc.data();
         if (data) {
-          setUserData({
+          const userData = {
             firstName: data.firstName,
             lastName: data.lastName,
             phone: data.phone,
-            email: data.email
-          });
+            email: data.email,
+            uid: user.uid
+          };
+          setUserData(userData);
           setIsAdmin(data.role === 'admin');
+          // Store user data in localStorage
+          localStorage.setItem('userData', JSON.stringify(userData));
         }
         // Redirect from login page if already logged in
         if (pathname === '/login') {
@@ -100,13 +105,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       await setPersistence(auth, browserLocalPersistence);
       const result = await signInWithEmailAndPassword(auth, email, password);
 
-      setUserData({
+      const userDataToStore = {
         firstName: userData.firstName,
         lastName: userData.lastName,
         phone: userData.phone,
-        email: userData.email
-      });
+        email: userData.email,
+        uid: result.user.uid
+      };
+
+      setUserData(userDataToStore);
       setIsAdmin(userData.role === 'admin');
+      
+      // Store user data in localStorage
+      localStorage.setItem('userData', JSON.stringify(userDataToStore));
 
       router.push('/');
     } catch (error: any) {
@@ -121,6 +132,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const signOut = async () => {
     try {
       await firebaseSignOut(auth);
+      // Clear user data from localStorage
+      localStorage.removeItem('userData');
       router.push('/login');
     } catch (error) {
       console.error('Failed to sign out:', error);

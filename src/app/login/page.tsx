@@ -1,88 +1,127 @@
 "use client";
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { useRouter } from 'next/navigation';
-import { Button, TextField } from '@mui/material';
+import { signIn } from 'next-auth/react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import {
+  TextField,
+  Button,
+  Paper,
+  Typography,
+  CircularProgress,
+  InputAdornment,
+  Alert
+} from '@mui/material';
+import { Phone, Lock } from '@mui/icons-material';
 
 export default function LoginPage() {
-  const [phone, setPhone] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-  const { signIn } = useAuth();
   const router = useRouter();
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numbers and limit length to 15
-    if (/^\d*$/.test(value) && value.length <= 15) {
-      setPhone(value);
-    }
-  };
+  const searchParams = useSearchParams();
+  const callbackUrl = searchParams?.get('callbackUrl') || '/';
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+  const [formData, setFormData] = useState({
+    phoneNumber: '',
+    password: ''
+  });
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    // Just check if phone is not empty and contains only numbers
-    if (!phone || !/^\d+$/.test(phone)) {
-      setError('لطفاً شماره تلفن معتبر وارد کنید');
-      return;
-    }
-    
+
     try {
-      await signIn(phone, password);
-    } catch (error: any) {
-      setError(error.message || 'خطا در ورود به سیستم');
+      const result = await signIn('credentials', {
+        phoneNumber: formData.phoneNumber,
+        password: formData.password,
+        redirect: false
+      });
+
+      if (result?.error) {
+        setError(result.error);
+      } else {
+        router.push(callbackUrl);
+      }
+    } catch (error) {
+      setError('خطا در ورود به حساب کاربری');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">ورود</h1>
+    <div className="min-h-screen flex items-center justify-center p-4" dir="rtl">
+      <Paper className="p-8 max-w-md w-full">
+        <Typography variant="h4" className="mb-6 text-center">
+          ورود به حساب کاربری
+        </Typography>
+
         {error && (
-          <p className="text-red-500 text-center mb-4">{error}</p>
+          <Alert severity="error" className="mb-4">
+            {error}
+          </Alert>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
           <TextField
             fullWidth
             label="شماره تلفن"
-            value={phone}
-            onChange={handlePhoneChange}
-            required
-            dir="ltr"
-            inputProps={{
-              maxLength: 15
+            type="tel"
+            value={formData.phoneNumber}
+            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Phone />
+                </InputAdornment>
+              ),
             }}
+            placeholder="09xxxxxxxxx"
+            dir="ltr"
           />
+
           <TextField
             fullWidth
-            type="password"
             label="رمز عبور"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
+            type="password"
+            value={formData.password}
+            onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+            }}
             dir="ltr"
           />
+
           <Button
             type="submit"
             variant="contained"
             fullWidth
-            className="mt-4"
+            size="large"
+            disabled={loading}
           >
-            ورود
+            {loading ? <CircularProgress size={24} /> : 'ورود'}
           </Button>
-          <div className="text-center mt-4 space-y-2">
-            <Link href="/register" className="text-blue-500 hover:underline block">
-              ثبت نام
-            </Link>
-            <Link href="/reset-password" className="text-blue-500 hover:underline block">
-              فراموشی رمز عبور
-            </Link>
-          </div>
         </form>
-      </div>
+
+        <div className="mt-4 text-center space-y-2">
+          <Typography>
+            حساب کاربری ندارید؟{' '}
+            <Link href="/register" className="text-blue-600 hover:text-blue-800">
+              ثبت نام کنید
+            </Link>
+          </Typography>
+          <Typography>
+            <Link href="/forgot-password" className="text-blue-600 hover:text-blue-800">
+              رمز عبور خود را فراموش کرده‌اید؟
+            </Link>
+          </Typography>
+        </div>
+      </Paper>
     </div>
   );
 } 

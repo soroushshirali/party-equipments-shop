@@ -1,10 +1,23 @@
 "use client";
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AdminPanel() {
-  const { isAdmin } = useAuth();
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  if (!isAdmin) {
+  useEffect(() => {
+    if (status === 'unauthenticated' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
+      router.push('/');
+    }
+  }, [status, session, router]);
+
+  if (status === 'loading') {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
     return null;
   }
 

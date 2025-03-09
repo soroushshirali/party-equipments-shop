@@ -66,14 +66,24 @@ if (mongoose.models.Product) {
 // Create the model
 const Product = mongoose.model<ProductDocument>('Product', ProductSchema);
 
-export async function GET() {
+export async function GET(request: Request) {
   try {
     await connectToDatabase();
-    const products = await Product.find({}).lean();
+
+    // Get categoryId from query parameters
+    const { searchParams } = new URL(request.url);
+    const categoryId = searchParams.get('categoryId');
+
+    // Create query based on categoryId
+    const query = categoryId ? { categoryId } : {};
+    console.log('Fetching products with query:', query);
+
+    const products = await Product.find(query).lean();
+    console.log(`Found ${products.length} products`);
     
     // Transform MongoDB _id to id for frontend compatibility
     const transformedProducts = products.map(product => ({
-      id: (product as any)._id.toString(),
+      id: product._id.toString(),
       name: product.name,
       price: product.price,
       image: product.image,

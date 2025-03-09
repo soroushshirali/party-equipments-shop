@@ -1,5 +1,5 @@
 "use client";
-import { Card, CardHeader, CardContent, Typography } from '@mui/material';
+import { Card, CardContent } from '@mui/material';
 import { RentalItem } from '../RentalItem';
 import { CategoryItem } from '@/types/types';
 
@@ -10,20 +10,16 @@ interface CategorySectionProps {
 }
 
 export const CategorySection = ({ title, items, groupBorderColor }: CategorySectionProps) => (
-  <Card className="mb-8">
-    <CardHeader>
-      <Typography className="text-2xl text-center text-gray-800" dir="rtl">
-        {title}
-      </Typography>
-    </CardHeader>
-    <CardContent>
-      <div className="grid grid-cols-2 md:flex md:flex-wrap justify-center gap-4 md:gap-8">
+  <Card className="mb-8 shadow-lg max-w-5xl mx-auto">
+    <CardContent className="py-6">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 justify-center gap-4">
         {items.map((item, index) => (
-          <RentalItem 
-            key={index} 
-            {...item}
-            borderColor={groupBorderColor}
-          />
+          <div key={item.categoryId || index} className="flex justify-center">
+            <RentalItem 
+              {...item}
+              borderColor={groupBorderColor}
+            />
+          </div>
         ))}
       </div>
     </CardContent>

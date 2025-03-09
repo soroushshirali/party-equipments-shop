@@ -29,13 +29,12 @@ import {
   InputLabel,
   Select as MuiSelect
 } from '@mui/material';
-import { collection, query, orderBy, getDocs, doc, updateDoc, limit, startAfter, where, and, or } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { Order } from '@/types/types';
-import { useAuth } from '@/contexts/AuthContext';
 import { Notification } from '@/components/Notification';
 import { Search, Clear } from '@mui/icons-material';
 import debounce from 'lodash/debounce';
+import axios from '@/lib/axios';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
 
 const ITEMS_PER_PAGE = 10;
 
@@ -46,13 +45,31 @@ const statusTranslations = {
   'cancelled': 'لغو شده'
 };
 
+interface OrderItem {
+  productId: string;
+  productName: string;
+  quantity: number;
+  price: number;
+}
+
+interface Order {
+  id: string;
+  userId: string;
+  userEmail: string;
+  userName: string;
+  items: OrderItem[];
+  total: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  createdAt: string;
+}
+
 export default function OrdersManagement() {
-  const { user, isAdmin } = useAuth();
+  const { data: session, status } = useSession();
+  const router = useRouter();
   const [orders, setOrders] = useState<Order[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [totalOrders, setTotalOrders] = useState(0);
-  const [lastVisible, setLastVisible] = useState<any>(null);
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
@@ -62,18 +79,18 @@ export default function OrdersManagement() {
     message: '',
     severity: 'success'
   });
-  const [pageData, setPageData] = useState<{
-    [key: number]: {
-      orders: Order[];
-      lastVisible: any;
-    };
-  }>({});
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
   const [filters, setFilters] = useState({
     userName: '',
     status: ''
   });
   const [debouncedUserName, setDebouncedUserName] = useState('');
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
 
   const debouncedSetUserName = useCallback(
     debounce((value: string) => {
@@ -89,7 +106,6 @@ export default function OrdersManagement() {
     } else {
       setFilters(prev => ({ ...prev, [field]: value }));
       setPage(0);
-      setPageData({});
     }
   };
 
@@ -100,58 +116,23 @@ export default function OrdersManagement() {
     });
     setDebouncedUserName('');
     setPage(0);
-    setPageData({});
-  };
-
-  const buildQuery = (baseQuery: any) => {
-    let conditions = [where('finalized', '==', true)];
-
-    if (debouncedUserName) {
-      conditions.push(where('userName', '>=', debouncedUserName));
-      conditions.push(where('userName', '<=', debouncedUserName + '\uf8ff'));
-    }
-    if (filters.status) {
-      conditions.push(where('status', '==', filters.status));
-    }
-
-    return query(baseQuery, ...conditions, orderBy('createdAt', 'desc'), limit(ITEMS_PER_PAGE));
   };
 
   const fetchOrders = async () => {
-    if (!isAdmin) return;
-
     try {
       setLoading(true);
-      const ordersRef = collection(db, 'orders');
-      const q = buildQuery(ordersRef);
-      setPage(0);
-      setPageData({});
-
-      const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt.toDate().toISOString()
-        } as Order;
-      });
-
-      setOrders(ordersData);
-      setPageData({
-        0: {
-          orders: ordersData,
-          lastVisible: snapshot.docs[snapshot.docs.length - 1]
-        }
-      });
+      let url = `/api/admin/orders?page=${page + 1}&limit=${ITEMS_PER_PAGE}`;
       
-      // Get total count of finalized orders
-      const totalQuery = query(
-        collection(db, 'orders'),
-        where('finalized', '==', true)
-      );
-      const totalSnapshot = await getDocs(totalQuery);
-      setTotalOrders(totalSnapshot.size);
+      if (debouncedUserName) {
+        url += `&userName=${encodeURIComponent(debouncedUserName)}`;
+      }
+      if (filters.status) {
+        url += `&status=${encodeURIComponent(filters.status)}`;
+      }
+
+      const response = await axios.get(url);
+      setOrders(response.data.orders);
+      setTotalOrders(response.data.total);
     } catch (error) {
       console.error('Error fetching orders:', error);
       setNotification({
@@ -164,58 +145,9 @@ export default function OrdersManagement() {
     }
   };
 
-  const loadMoreOrders = async (newPage: number) => {
-    if (!isAdmin) return;
-
-    // If we already have this page's data, use it
-    if (pageData[newPage]) {
-      setOrders(pageData[newPage].orders);
-      setLastVisible(pageData[newPage].lastVisible);
-      setPage(newPage);
-      return;
-    }
-
-    try {
-      setLoading(true);
-      const ordersRef = collection(db, 'orders');
-      const q = query(
-        ordersRef,
-        where('finalized', '==', true),
-        orderBy('createdAt', 'desc'),
-        startAfter(pageData[newPage - 1].lastVisible),
-        limit(ITEMS_PER_PAGE)
-      );
-
-      const snapshot = await getDocs(q);
-      const ordersData = snapshot.docs.map(doc => {
-        const data = doc.data() as any;
-        return {
-          id: doc.id,
-          ...data,
-          createdAt: data.createdAt.toDate().toISOString()
-        } as Order;
-      });
-
-      setOrders(ordersData);
-      setPageData(prev => ({
-        ...prev,
-        [newPage]: {
-          orders: ordersData,
-          lastVisible: snapshot.docs[snapshot.docs.length - 1]
-        }
-      }));
-      setLastVisible(snapshot.docs[snapshot.docs.length - 1]);
-      setPage(newPage);
-    } catch (error) {
-      console.error('Error loading more orders:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
   const handleStatusChange = async (orderId: string, newStatus: Order['status']) => {
     try {
-      await updateDoc(doc(db, 'orders', orderId), {
+      await axios.patch(`/api/admin/orders/${orderId}`, {
         status: newStatus
       });
 
@@ -246,13 +178,25 @@ export default function OrdersManagement() {
     setSelectedOrder(null);
   };
 
+  const handlePageChange = (event: unknown, newPage: number) => {
+    setPage(newPage);
+  };
+
   useEffect(() => {
-    if (isAdmin) {
+    if (session?.user?.role === 'admin') {
       fetchOrders();
     }
-  }, [debouncedUserName, filters.status, isAdmin]);
+  }, [page, debouncedUserName, filters.status, session]);
 
-  if (!isAdmin) {
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (session?.user?.role !== 'admin') {
     return <div>دسترسی محدود شده است</div>;
   }
 
@@ -309,7 +253,7 @@ export default function OrdersManagement() {
         </Button>
       </Stack>
 
-      <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
+      <TableContainer component={Paper}>
         <Table stickyHeader>
           <TableHead>
             <TableRow>
@@ -373,7 +317,7 @@ export default function OrdersManagement() {
                   {new Date(order.createdAt).toLocaleDateString('fa-IR')}
                 </TableCell>
                 <TableCell>{order.items.length}</TableCell>
-                <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
+                <TableCell>{order.total.toLocaleString()} تومان</TableCell>
               </TableRow>
             ))}
           </TableBody>
@@ -384,7 +328,7 @@ export default function OrdersManagement() {
         component="div"
         count={totalOrders}
         page={page}
-        onPageChange={(_, newPage) => loadMoreOrders(newPage)}
+        onPageChange={handlePageChange}
         rowsPerPage={ITEMS_PER_PAGE}
         rowsPerPageOptions={[ITEMS_PER_PAGE]}
         labelDisplayedRows={({ from, to, count }) => 
@@ -420,7 +364,7 @@ export default function OrdersManagement() {
                   <h3 className="font-bold">اطلاعات سفارش</h3>
                   <p>تاریخ: {new Date(selectedOrder.createdAt).toLocaleDateString('fa-IR')}</p>
                   <p>وضعیت: {statusTranslations[selectedOrder.status]}</p>
-                  <p>مبلغ کل: {selectedOrder.totalPrice.toLocaleString()} تومان</p>
+                  <p>مبلغ کل: {selectedOrder.total.toLocaleString()} تومان</p>
                 </div>
               </div>
 
@@ -430,10 +374,10 @@ export default function OrdersManagement() {
                 <h3 className="font-bold mb-2">اقلام سفارش</h3>
                 <List>
                   {selectedOrder.items.map((item) => (
-                    <ListItem key={item.id}>
+                    <ListItem key={item.productId}>
                       <ListItemText
-                        primary={item.name}
-                        secondary={`${item.quantity} عدد - ${(item.price * (item.quantity || 1)).toLocaleString()} تومان`}
+                        primary={item.productName}
+                        secondary={`${item.quantity} عدد - ${(item.price * item.quantity).toLocaleString()} تومان`}
                       />
                     </ListItem>
                   ))}

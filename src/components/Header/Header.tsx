@@ -4,10 +4,10 @@ import Link from 'next/link';
 import { Cart } from '../Cart/Cart';
 import { CartItem } from '../Cart/CartItem';
 import { Product } from '@/types/types';
-import { useAuth } from '@/contexts/AuthContext';
 import { Menu, X, ShoppingCart } from 'lucide-react';
 import { useState } from 'react';
 import { MobileCart } from '../Cart/MobileCart';
+import { useSession, signOut } from 'next-auth/react';
 
 interface HeaderProps {
   cart: Product[];
@@ -28,11 +28,15 @@ export const Header = ({
   showBackButton,
   onSubmitOrder
 }: HeaderProps) => {
-  const { user, userData, isAdmin, signOut } = useAuth();
+  const { data: session, status } = useSession();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const closeMobileMenu = () => {
     setIsMobileMenuOpen(false);
+  };
+
+  const handleSignOut = async () => {
+    await signOut({ redirect: true, callbackUrl: '/' });
   };
 
   return (
@@ -42,9 +46,7 @@ export const Header = ({
         <div className="hidden md:flex justify-between items-center p-4">
           <div className="flex items-center gap-4">
             <Link href="/">
-              <Button>
-                خانه
-              </Button>
+              <Button>خانه</Button>
             </Link>
             {showBackButton && (
               <Link href="/">
@@ -54,17 +56,16 @@ export const Header = ({
             <Link href="/about">
               <Button>درباره ما</Button>
             </Link>
-            {user && (
+            
+            {status === 'authenticated' && session?.user ? (
               <>
                 <Link href="/profile">
-                  <Button>
-                    {userData?.firstName} {userData?.lastName}
-                  </Button>
-                </Link>                
+                  <Button>{session.user.name}</Button>
+                </Link>
                 <Link href="/my-orders">
                   <Button>سفارش‌های من</Button>
                 </Link>
-                {isAdmin && (
+                {session.user.role === 'admin' && (
                   <Link href="/admin-panel">
                     <Button variant="contained" color="primary">
                       پنل مدیریت
@@ -74,13 +75,12 @@ export const Header = ({
                 <Button 
                   variant="outlined" 
                   color="error" 
-                  onClick={signOut}
+                  onClick={handleSignOut}
                 >
                   خروج
                 </Button>
               </>
-            )}
-            {!user && (
+            ) : (
               <>
                 <Link href="/login">
                   <Button variant="contained" color="primary">
@@ -95,6 +95,19 @@ export const Header = ({
               </>
             )}
           </div>
+          
+          {/* Cart Button in Header */}
+          <button 
+            onClick={() => setIsCartOpen(!isCartOpen)}
+            className="flex items-center gap-2"
+          >
+            <ShoppingCart size={24} />
+            {cart.length > 0 && (
+              <span className="bg-blue-500 text-white px-2 py-1 rounded-full text-sm">
+                {cart.length}
+              </span>
+            )}
+          </button>
         </div>
 
         {/* Mobile Header */}
@@ -126,7 +139,7 @@ export const Header = ({
             className="md:hidden fixed inset-0 bg-black bg-opacity-50 z-50"
             onClick={closeMobileMenu}
           >
-            <div 
+            <div
               className="bg-white h-full w-2/3 p-4 space-y-4 relative"
               onClick={(e) => e.stopPropagation()}
             >
@@ -150,14 +163,14 @@ export const Header = ({
                 </Button>
               </Link>
 
-              {user ? (
+              {status === 'authenticated' && session?.user ? (
                 <>
                   <Link href="/profile" onClick={closeMobileMenu}>
                     <Button fullWidth>
-                      {userData?.firstName} {userData?.lastName}
+                      {session.user.name}
                     </Button>
                   </Link>
-                  {isAdmin && (
+                  {session.user.role === 'admin' && (
                     <Link href="/admin-panel" onClick={closeMobileMenu}>
                       <Button variant="contained" color="primary" fullWidth>
                         پنل مدیریت
@@ -171,7 +184,7 @@ export const Header = ({
                     variant="outlined" 
                     color="error" 
                     onClick={() => {
-                      signOut();
+                      handleSignOut();
                       closeMobileMenu();
                     }}
                     fullWidth

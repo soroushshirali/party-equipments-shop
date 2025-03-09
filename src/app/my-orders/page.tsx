@@ -1,75 +1,81 @@
 "use client";
 import { useState, useEffect } from 'react';
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableContainer, 
-  TableHead, 
-  TableRow, 
+import { useRouter } from 'next/navigation';
+import { useSession } from 'next-auth/react';
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableContainer,
+  TableHead,
+  TableRow,
   Paper,
-  Button,
+  Typography,
+  Chip,
   CircularProgress
 } from '@mui/material';
-import { collection, query, where, getDocs, orderBy } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
-import { useAuth } from '@/contexts/AuthContext';
-import { Order } from '@/types/types';
-import { useCart } from '@/contexts/CartContext';
-import { Notification } from '@/components/Notification';
-import { Header } from '@/components/Header/Header';
-import { useAppDispatch, useAppSelector } from '@/store/hooks';
-import { fetchOrders } from '@/store/ordersSlice';
+import axios from '@/lib/axios';
 
-const statusTranslations = {
-  'pending': 'در انتظار تایید',
-  'processing': 'در حال پردازش',
-  'completed': 'تکمیل شده',
-  'cancelled': 'لغو شده'
-};
+interface OrderItem {
+  productId: string;
+  quantity: number;
+  price: number;
+}
 
-export default function MyOrdersPage() {
-  const { user } = useAuth();
-  const dispatch = useAppDispatch();
-  const { items: orders, loading, error } = useAppSelector(state => state.orders);
-  const { cart, removeFromCart, updateQuantity, returnOrderToCart } = useCart();
-  const [isCartOpen, setIsCartOpen] = useState(false);
-  const [notification, setNotification] = useState<{
-    open: boolean;
-    message: string;
-    severity: 'success' | 'error' | 'info' | 'warning';
-  }>({ open: false, message: '', severity: 'success' });
+interface Order {
+  id: string;
+  userId: string;
+  userPhoneNumber: string;
+  items: OrderItem[];
+  total: number;
+  status: 'pending' | 'processing' | 'completed' | 'cancelled';
+  createdAt: string;
+}
 
-  const handleReturnToCart = async (orderId: string) => {
-    if (!user) return;
-    
-    try {
-      await returnOrderToCart(orderId);
-      setNotification({
-        open: true,
-        message: 'سفارش به سبد خرید برگشت',
-        severity: 'success'
-      });
-      dispatch(fetchOrders(user.uid));
-    } catch (error) {
-      console.error('Error returning order to cart:', error);
-      setNotification({
-        open: true,
-        message: 'خطا در برگرداندن سفارش به سبد خرید',
-        severity: 'error'
-      });
+const statusColors = {
+  pending: 'warning',
+  processing: 'info',
+  completed: 'success',
+  cancelled: 'error'
+} as const;
+
+const statusLabels = {
+  pending: 'در انتظار',
+  processing: 'در حال پردازش',
+  completed: 'تکمیل شده',
+  cancelled: 'لغو شده'
+} as const;
+
+export default function MyOrders() {
+  const { data: session, status } = useSession();
+  const router = useRouter();
+  const [orders, setOrders] = useState<Order[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
     }
-  };
+  }, [status, router]);
 
-  const handleRemoveFromCart = async (productId: string) => {
-    await removeFromCart(productId);
-  };
+  useEffect(() => {
+    const fetchOrders = async () => {
+      if (status !== 'authenticated' || !session?.user) return;
+      
+      try {
+        const response = await axios.get(`/api/orders?userId=${session.user.id}`);
+        setOrders(response.data);
+      } catch (error) {
+        console.error('Error fetching orders:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!user) {
-    return;
-  }
+    fetchOrders();
+  }, [session, status]);
 
-  if (loading) {
+  if (status === 'loading' || loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
         <CircularProgress />
@@ -77,89 +83,58 @@ export default function MyOrdersPage() {
     );
   }
 
-  if (error) {
-    return <div>Error: {error}</div>;
+  if (status === 'unauthenticated') {
+    return (
+      <div className="container mx-auto p-4 text-center" dir="rtl">
+        <Typography variant="h5">لطفا وارد حساب کاربری خود شوید</Typography>
+      </div>
+    );
+  }
+
+  if (orders.length === 0) {
+    return (
+      <div className="container mx-auto p-4 text-center" dir="rtl">
+        <Typography variant="h5">شما هنوز سفارشی ثبت نکرده‌اید</Typography>
+      </div>
+    );
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8" dir="rtl">
-      <h1 className="text-2xl font-bold mb-6">سفارش‌های من</h1>
+    <div className="container mx-auto p-4" dir="rtl">
+      <Typography variant="h4" className="mb-4">سفارش‌های من</Typography>
       
-      {orders.length === 0 ? (
-        <div className="text-center p-8 bg-gray-50 rounded-lg">
-          <p>هنوز سفارشی ثبت نکرده‌اید</p>
-        </div>
-      ) : (
-        <TableContainer component={Paper} sx={{ maxWidth: '100%', overflowX: 'auto' }}>
-          <Table stickyHeader>
-            <TableHead>
-              <TableRow>
-                <TableCell 
-                  sx={{ 
-                    position: 'sticky', 
-                    right: 0, 
-                    background: 'white',
-                    zIndex: 1,
-                    borderLeft: '1px solid rgba(224, 224, 224, 1)',
-                    padding: '8px',
-                    width: '1%',
-                    whiteSpace: 'nowrap'
-                  }}
-                >
-                  عملیات
+      <TableContainer component={Paper}>
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>شماره سفارش</TableCell>
+              <TableCell>تاریخ</TableCell>
+              <TableCell>وضعیت</TableCell>
+              <TableCell>تعداد اقلام</TableCell>
+              <TableCell>مبلغ کل</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {orders.map((order) => (
+              <TableRow key={order.id}>
+                <TableCell>{order.id}</TableCell>
+                <TableCell>
+                  {new Date(order.createdAt).toLocaleDateString('fa-IR')}
                 </TableCell>
-                <TableCell>وضعیت</TableCell>
-                <TableCell>شماره سفارش</TableCell>
-                <TableCell>تاریخ</TableCell>
-                <TableCell>تعداد اقلام</TableCell>
-                <TableCell>مبلغ کل</TableCell>
+                <TableCell>
+                  <Chip
+                    label={statusLabels[order.status]}
+                    color={statusColors[order.status]}
+                    size="small"
+                  />
+                </TableCell>
+                <TableCell>{order.items.length}</TableCell>
+                <TableCell>{order.total.toLocaleString()} تومان</TableCell>
               </TableRow>
-            </TableHead>
-            <TableBody>
-              {orders.map((order) => (
-                <TableRow key={order.id}>
-                  <TableCell
-                    sx={{ 
-                      position: 'sticky', 
-                      right: 0, 
-                      background: 'white',
-                      zIndex: 1,
-                      borderLeft: '1px solid rgba(224, 224, 224, 1)',
-                      padding: '8px',
-                      width: '1%',
-                      whiteSpace: 'nowrap'
-                    }}
-                  >
-                    {order.status === 'pending' && (
-                      <Button
-                        variant="outlined"
-                        size="small"
-                        onClick={() => handleReturnToCart(order.id)}
-                      >
-                        برگرداندن به سبد خرید
-                      </Button>
-                    )}
-                  </TableCell>
-                  <TableCell>{statusTranslations[order.status]}</TableCell>
-                  <TableCell>{order.id.slice(0, 8)}</TableCell>
-                  <TableCell>
-                    {new Date(order.createdAt).toLocaleDateString('fa-IR')}
-                  </TableCell>
-                  <TableCell>{order.items.length}</TableCell>
-                  <TableCell>{order.totalPrice.toLocaleString()} تومان</TableCell>
-                </TableRow>
-              ))}
-            </TableBody>
-          </Table>
-        </TableContainer>
-      )}
-
-      <Notification
-        open={notification.open}
-        message={notification.message}
-        severity={notification.severity}
-        onClose={() => setNotification(prev => ({ ...prev, open: false }))}
-      />
+            ))}
+          </TableBody>
+        </Table>
+      </TableContainer>
     </div>
   );
 } 

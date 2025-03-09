@@ -1,0 +1,21 @@
+/* Home page specific styles */
+.home-container {
+  cursor: default !important;
+}
+
+.home-container * {
+  cursor: default !important;
+  caret-color: transparent !important;
+}
+
+.home-container a,
+.home-container button {
+  cursor: pointer !important;
+}
+
+.home-container input,
+.home-container textarea,
+.home-container [contenteditable="true"] {
+  cursor: text !important;
+  caret-color: auto !important;
+} 

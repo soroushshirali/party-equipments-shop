@@ -1,40 +1,75 @@
 "use client";
 
+import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
-import { useProducts } from '@/hooks/useProducts';
-import { useCart } from '@/contexts/CartContext';
-import { Header } from '@/components/Header';
-import { Button } from '@mui/material';
 import Link from 'next/link';
+import {
+  CircularProgress,
+  Typography,
+  Button,
+  Card,
+  CardContent,
+  Grid,
+  Box,
+} from '@mui/material';
+import { useAppDispatch, useAppSelector } from '@/store/hooks';
+import { addToCart, selectLoadingItemId } from '@/store/cartSlice';
+import { Loader2 } from 'lucide-react';
+import axios from 'axios';
+import { Product } from '@/types/types';
+import { Header } from '@/components/Header';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
 import { ImageViewer } from '@/components/ImageViewer';
 
-export default function ProductDetails() {
-  const params = useParams();
-  const categoryId = Array.isArray(params?.categoryId) 
-    ? params.categoryId[0] 
-    : params?.categoryId ?? '';
-  const productId = Array.isArray(params?.productId)
-    ? params.productId[0]
-    : params?.productId ?? '';
-  
-  const { products, loading: productsLoading } = useProducts(categoryId);
-  const { cart, addToCart, removeFromCart, updateQuantity, isCartOpen, setIsCartOpen, loadingItemId } = useCart();
+export default function ProductDetailsPage() {
+  const { categoryId, productId } = useParams();
+  const dispatch = useAppDispatch();
+  const loadingItemId = useAppSelector(selectLoadingItemId);
+  const [product, setProduct] = useState<Product | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (productsLoading) return <LoadingSpinner />;
+  useEffect(() => {
+    const fetchProduct = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+        
+        // Fetch product from MongoDB API
+        const response = await axios.get(`/api/products/${productId}`);
+        setProduct(response.data);
+      } catch (err: any) {
+        console.error('Error fetching product:', err);
+        setError(err.response?.data?.error || 'Failed to fetch product');
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  console.log('All products:', products);
-  const product = products?.find(p => p.id.toString() === productId);
-  console.log('Selected product:', product);
+    if (productId) {
+      fetchProduct();
+    }
+  }, [productId]);
+
+  if (loading) return <LoadingSpinner />;
 
   if (!product) return <div>محصول یافت نشد</div>;
 
   const headerProps = {
-    cart,
-    onRemoveFromCart: removeFromCart,
-    onUpdateQuantity: updateQuantity,
-    isCartOpen,
-    setIsCartOpen,
+    cart: [],
+    onRemoveFromCart: () => {},
+    onUpdateQuantity: () => {},
+    isCartOpen: false,
+    setIsCartOpen: () => {},
+  };
+
+  const handleAddToCart = async (product: Product) => {
+    try {
+      await dispatch(addToCart(product)).unwrap();
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      alert('خطا در افزودن به سبد خرید');
+    }
   };
 
   return (
@@ -85,7 +120,7 @@ export default function ProductDetails() {
                 <span className="text-2xl font-bold">{product.price.toLocaleString()} تومان</span>
                 <Button
                   variant="contained"
-                  onClick={() => addToCart(product)}
+                  onClick={() => handleAddToCart(product)}
                   disabled={loadingItemId === product.id}
                   size="large"
                 >

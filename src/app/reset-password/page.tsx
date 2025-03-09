@@ -1,24 +1,29 @@
 "use client";
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { Button, TextField } from '@mui/material';
 import Link from 'next/link';
+import axios from '@/lib/axios';
 
 export default function ResetPasswordPage() {
-  const [email, setEmail] = useState('');
+  const [phoneNumber, setPhoneNumber] = useState('');
   const [message, setMessage] = useState('');
   const [error, setError] = useState('');
-  const { resetPassword } = useAuth();
+  const [loading, setLoading] = useState(false);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
     try {
-      await resetPassword(email);
-      setMessage('لینک بازیابی رمز عبور به ایمیل شما ارسال شد');
+      await axios.post('/api/auth/forgot-password/request', { phoneNumber });
+      setMessage('کد تایید به شماره تلفن شما ارسال شد');
       setError('');
-    } catch (error) {
-      setError('خطا در ارسال لینک بازیابی');
+      // Redirect to verification page
+      window.location.href = `/verify-reset?phone=${encodeURIComponent(phoneNumber)}`;
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'خطا در ارسال کد تایید');
       setMessage('');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -31,18 +36,20 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit} className="space-y-4">
           <TextField
             fullWidth
-            label="ایمیل"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            label="شماره تلفن"
+            value={phoneNumber}
+            onChange={(e) => setPhoneNumber(e.target.value)}
             dir="ltr"
+            placeholder="09123456789"
           />
           <Button
             type="submit"
             variant="contained"
             fullWidth
             className="mt-4"
+            disabled={loading}
           >
-            ارسال لینک بازیابی
+            {loading ? 'در حال ارسال...' : 'ارسال کد تایید'}
           </Button>
           <div className="text-center mt-4">
             <Link href="/login" className="text-blue-500 hover:underline">

@@ -1,17 +1,30 @@
 "use client";
 import Link from 'next/link';
 import { Button } from '@mui/material';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
+import { useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
 export default function AdminPanelLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const { isAdmin } = useAuth();
+  const { data: session, status } = useSession();
+  const router = useRouter();
 
-  if (!isAdmin) {
-    return <div className="p-4">دسترسی محدود شده است</div>;
+  useEffect(() => {
+    if (status === 'unauthenticated' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
+      router.push('/');
+    }
+  }, [status, session, router]);
+
+  if (status === 'loading') {
+    return <div className="p-4">Loading...</div>;
+  }
+
+  if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
+    return null;
   }
 
   return (

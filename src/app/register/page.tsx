@@ -1,138 +1,180 @@
 "use client";
 import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
 import { useRouter } from 'next/navigation';
-import { Button, TextField } from '@mui/material';
 import Link from 'next/link';
+import {
+  TextField,
+  Button,
+  Paper,
+  Typography,
+  CircularProgress,
+  InputAdornment,
+  Alert
+} from '@mui/material';
+import { Person, Phone, Lock } from '@mui/icons-material';
+import axios from '@/lib/axios';
 
 export default function RegisterPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
   const [formData, setFormData] = useState({
     firstName: '',
     lastName: '',
-    phone: '',
-    email: '',
+    phoneNumber: '',
     password: '',
     confirmPassword: ''
   });
-  const [error, setError] = useState('');
-  const { signUp } = useAuth();
-  const router = useRouter();
-
-  const handlePhoneChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    // Only allow numbers and limit length to 15
-    if (/^\d*$/.test(value) && value.length <= 15) {
-      setFormData({ ...formData, phone: value });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
+    setLoading(true);
 
-    if (!formData.phone || !formData.firstName || !formData.lastName || !formData.password) {
-      setError('نام، نام خانوادگی، شماره تلفن و رمز عبور الزامی هستند');
-      return;
-    }
 
-    // Just check if phone contains only numbers
-    if (!/^\d+$/.test(formData.phone)) {
-      setError('لطفاً شماره تلفن معتبر وارد کنید');
+
+    // Validate password match
+    if (formData.password !== formData.confirmPassword) {
+      setError('رمز عبور و تکرار آن مطابقت ندارند');
+      setLoading(false);
       return;
     }
 
     // Validate password length
     if (formData.password.length < 6) {
       setError('رمز عبور باید حداقل ۶ کاراکتر باشد');
-      return;
-    }
-
-    if (formData.password !== formData.confirmPassword) {
-      setError('رمز عبور و تکرار آن مطابقت ندارند');
+      setLoading(false);
       return;
     }
 
     try {
-      await signUp(formData);
-      router.push('/');
+      await axios.post('/api/auth/register', {
+        firstName: formData.firstName,
+        lastName: formData.lastName,
+        phoneNumber: formData.phoneNumber,
+        password: formData.password
+      });
+
+      router.push('/login?message=ثبت نام با موفقیت انجام شد. لطفا وارد شوید');
     } catch (error: any) {
-      setError(error.message || 'خطا در ثبت نام');
+      setError(error.response?.data?.error || 'خطا در ثبت نام');
+    } finally {
+      setLoading(false);
     }
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center">
-      <div className="max-w-md w-full p-6 bg-white rounded-lg shadow-lg">
-        <h1 className="text-2xl font-bold mb-6 text-center">ثبت نام</h1>
+    <div className="min-h-screen flex items-center justify-center p-4" dir="rtl">
+      <Paper className="p-8 max-w-md w-full">
+        <Typography variant="h4" className="mb-6 text-center">
+          ثبت نام
+        </Typography>
+
         {error && (
-          <p className="text-red-500 text-center mb-4">{error}</p>
+          <Alert severity="error" className="mb-4">
+            {error}
+          </Alert>
         )}
+
         <form onSubmit={handleSubmit} className="space-y-4">
-          <TextField
-            fullWidth
-            label="نام"
-            value={formData.firstName}
-            onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-            required
-            dir="rtl"
-          />
-          <TextField
-            fullWidth
-            label="نام خانوادگی"
-            value={formData.lastName}
-            onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-            required
-            dir="rtl"
-          />
+          <div className="flex gap-4">
+            <TextField
+              fullWidth
+              label="نام"
+              value={formData.firstName}
+              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person />
+                  </InputAdornment>
+                ),
+              }}
+            />
+            <TextField
+              fullWidth
+              label="نام خانوادگی"
+              value={formData.lastName}
+              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
+              InputProps={{
+                startAdornment: (
+                  <InputAdornment position="start">
+                    <Person />
+                  </InputAdornment>
+                ),
+              }}
+            />
+          </div>
+
           <TextField
             fullWidth
             label="شماره تلفن"
-            value={formData.phone}
-            onChange={handlePhoneChange}
-            required
-            dir="ltr"
-            inputProps={{
-              maxLength: 15
+            type="tel"
+            value={formData.phoneNumber}
+            onChange={(e) => setFormData({ ...formData, phoneNumber: e.target.value })}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Phone />
+                </InputAdornment>
+              ),
             }}
-          />
-          <TextField
-            fullWidth
-            label="ایمیل (اختیاری)"
-            value={formData.email}
-            onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            placeholder="09xxxxxxxxx"
             dir="ltr"
           />
+
           <TextField
             fullWidth
-            type="password"
             label="رمز عبور"
+            type="password"
             value={formData.password}
             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+            }}
             dir="ltr"
           />
+
           <TextField
             fullWidth
-            type="password"
             label="تکرار رمز عبور"
+            type="password"
             value={formData.confirmPassword}
             onChange={(e) => setFormData({ ...formData, confirmPassword: e.target.value })}
+            InputProps={{
+              startAdornment: (
+                <InputAdornment position="start">
+                  <Lock />
+                </InputAdornment>
+              ),
+            }}
             dir="ltr"
           />
+
           <Button
             type="submit"
             variant="contained"
             fullWidth
-            className="mt-4"
+            size="large"
+            disabled={loading}
           >
-            ثبت نام
+            {loading ? <CircularProgress size={24} /> : 'ثبت نام'}
           </Button>
-          <div className="text-center mt-4">
-            <Link href="/login" className="text-blue-500 hover:underline">
-              قبلاً ثبت نام کرده‌اید؟ ورود
-            </Link>
-          </div>
         </form>
-      </div>
+
+        <div className="mt-4 text-center">
+          <Typography>
+            حساب کاربری دارید؟{' '}
+            <Link href="/login" className="text-blue-600 hover:text-blue-800">
+              وارد شوید
+            </Link>
+          </Typography>
+        </div>
+      </Paper>
     </div>
   );
 } 

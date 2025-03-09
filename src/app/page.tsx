@@ -3,10 +3,30 @@
 import { useEffect, useState } from 'react';
 import { CircularProgress } from '@mui/material';
 import { CategorySection } from '@/components/CategorySection';
-import { useCategories } from '@/hooks/useCategories';
+import axios from '@/lib/axios';
+import { CategoryGroup } from '@/types/types';
 
 export default function Home() {
-  const { categories, loading, error } = useCategories();
+  const [categories, setCategories] = useState<CategoryGroup[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    async function fetchCategories() {
+      try {
+        const response = await axios.get('/api/categories');
+        setCategories(response.data);
+        setError(null);
+      } catch (err) {
+        console.error('Error fetching categories:', err);
+        setError('Failed to fetch categories');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchCategories();
+  }, []);
 
   if (loading) {
     return (
@@ -20,28 +40,24 @@ export default function Home() {
     return <div>Error: {error}</div>;
   }
 
-  // Group categories by groupTitle
-  const groupedCategories = categories.reduce((acc, category) => {
-    if (!acc[category.groupTitle]) {
-      acc[category.groupTitle] = [];
-    }
-    acc[category.groupTitle].push(category);
-    return acc;
-  }, {} as Record<string, typeof categories>);
-
   return (
     <div className="container mx-auto p-4 md:p-8">
-      {Object.entries(groupedCategories).map(([groupTitle, groupCategories]) => (
-        <div key={groupTitle} className="mb-8">
-          <h2 className="text-xl font-bold mb-4 text-center">{groupTitle}</h2>
-          {groupCategories.map((category) => (
-            <CategorySection
-              key={category.id}
-              title={category.title}
-              items={category.items}
-              groupBorderColor={category.groupBorderColor}
-            />
-          ))}
+      {categories.map((category) => (
+        <div key={category.id} className="mb-12">
+          <div className="flex justify-center mb-4">
+            <div 
+              className="text-center text-2xl md:text-3xl font-bold"
+              style={{ color: category.groupBorderColor || '#333' }}
+              dir="rtl"
+            >
+              {category.groupTitle}
+            </div>
+          </div>
+          <CategorySection
+            title={category.groupTitle}
+            items={category.items}
+            groupBorderColor={category.groupBorderColor}
+          />
         </div>
       ))}
     </div>

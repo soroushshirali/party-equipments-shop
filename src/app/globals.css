@@ -2,8 +2,129 @@
 @tailwind components;
 @tailwind utilities;
 
-body {
-  font-family: var(--font-vazir), system-ui, sans-serif;
+/* اعمال فونت وزیر به همه المان‌ها */
+html {
+  font-family: var(--font-vazir), system-ui, sans-serif !important;
+  cursor: default !important;
+}
+
+/* اعمال فونت به همه المان‌های HTML */
+body,
+h1, h2, h3, h4, h5, h6,
+p, span, div, button, input, textarea, select, option,
+a, li, td, th, label, blockquote, code, pre {
+  font-family: var(--font-vazir), system-ui, sans-serif !important;
+}
+
+/* Fix for cursor issues */
+body, 
+div:not([contenteditable="true"]), 
+span:not([contenteditable="true"]), 
+p:not([contenteditable="true"]),
+h1:not([contenteditable="true"]), 
+h2:not([contenteditable="true"]), 
+h3:not([contenteditable="true"]), 
+h4:not([contenteditable="true"]), 
+h5:not([contenteditable="true"]), 
+h6:not([contenteditable="true"]) {
+  cursor: default !important;
+  caret-color: transparent !important;
+  -webkit-user-select: none !important;
+  -moz-user-select: none !important;
+  -ms-user-select: none !important;
+  user-select: none !important;
+}
+
+/* Allow text cursor only on specific elements */
+input, 
+textarea, 
+[contenteditable="true"],
+.allow-text-cursor {
+  cursor: text !important;
+  caret-color: auto !important;
+  -webkit-user-select: text !important;
+  -moz-user-select: text !important;
+  -ms-user-select: text !important;
+  user-select: text !important;
+}
+
+/* اعمال فونت به کامپوننت‌های Material UI */
+.MuiTypography-root,
+.MuiButton-root,
+.MuiInputBase-root,
+.MuiMenuItem-root,
+.MuiChip-root,
+.MuiTab-root,
+.MuiAlert-root,
+.MuiTableCell-root,
+.MuiInputLabel-root,
+.MuiFormLabel-root,
+.MuiListItem-root,
+.MuiListItemText-root,
+.MuiCardHeader-root,
+.MuiCardContent-root,
+.MuiDialogTitle-root,
+.MuiDialogContent-root,
+.MuiDialogContentText-root,
+.MuiDialogActions-root,
+.MuiTooltip-tooltip,
+.MuiSnackbarContent-root,
+.MuiStepLabel-root,
+.MuiStepper-root,
+.MuiAccordionSummary-root,
+.MuiAccordionDetails-root,
+.MuiAutocomplete-root,
+.MuiPopover-root,
+.MuiMenu-root,
+.MuiDrawer-root,
+.MuiAppBar-root,
+.MuiToolbar-root,
+.MuiBreadcrumbs-root,
+.MuiPagination-root,
+.MuiPaginationItem-root,
+.MuiRating-root,
+.MuiSlider-root,
+.MuiSwitch-root,
+.MuiCheckbox-root,
+.MuiRadio-root,
+.MuiFormControlLabel-root,
+.MuiFormHelperText-root,
+.MuiLink-root,
+.MuiAvatar-root,
+.MuiBadge-root,
+.MuiBottomNavigation-root,
+.MuiBottomNavigationAction-root,
+.MuiButtonGroup-root,
+.MuiToggleButton-root,
+.MuiToggleButtonGroup-root,
+.MuiDivider-root,
+.MuiGrid-root,
+.MuiContainer-root,
+.MuiBox-root,
+.MuiStack-root,
+.MuiPaper-root,
+.MuiSkeleton-root,
+.MuiCircularProgress-root,
+.MuiLinearProgress-root,
+.MuiBackdrop-root,
+.MuiModal-root,
+.MuiPopover-root,
+.MuiPopper-root,
+.MuiTooltip-root,
+.MuiClickAwayListener-root,
+.MuiCollapse-root,
+.MuiFade-root,
+.MuiGrow-root,
+.MuiSlide-root,
+.MuiZoom-root {
+  font-family: var(--font-vazir), system-ui, sans-serif !important;
+}
+
+/* اعمال فونت به کلاس‌های تیلویند */
+.font-sans,
+.font-serif,
+.font-mono {
+  font-family: var(--font-vazir), system-ui, sans-serif !important;
 }
 
 @layer base {
@@ -65,6 +186,7 @@ body {
 @layer base {
   * {
     @apply border-border;
+    font-family: var(--font-vazir), system-ui, sans-serif !important;
   }
   body {
     @apply bg-background text-foreground;

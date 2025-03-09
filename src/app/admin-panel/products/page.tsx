@@ -8,20 +8,15 @@ import {
   TableHead, TableRow, Paper, IconButton, ListSubheader, TablePagination, LinearProgress, Typography
 } from '@mui/material';
 import { Add, Edit, Delete } from '@mui/icons-material';
-import { useAuth } from '@/contexts/AuthContext';
+import { useSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
-import { FirebaseWrapper } from '@/components/FirebaseWrapper';
 import { LoadingSpinner } from '@/components/LoadingSpinner';
-import { collection, getDocs, addDoc, query, orderBy, deleteDoc, doc, updateDoc } from 'firebase/firestore';
-import { db, storage } from '@/lib/firebase';
-import { ref, uploadBytes, getDownloadURL, uploadBytesResumable, deleteObject } from 'firebase/storage';
-import { v4 as uuidv4 } from 'uuid';
 import { Product, CategoryGroup } from '@/types/types';
 import Link from 'next/link';
-import axios from 'axios';
+import axios from '@/lib/axios';
 
 export default function ProductManagement() {
-  const { user, isAdmin, loading } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
@@ -49,15 +44,17 @@ export default function ProductManagement() {
   });
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) {
-      router.push('/login');
+    if (status === 'unauthenticated' || (status === 'authenticated' && session?.user?.role !== 'admin')) {
+      router.push('/');
     }
-  }, [user, isAdmin, loading, router]);
+  }, [status, session, router]);
 
   useEffect(() => {
-    loadCategories();
-    loadProducts();
-  }, []);
+    if (session?.user?.role === 'admin') {
+      loadCategories();
+      loadProducts();
+    }
+  }, [session]);
 
   const loadCategories = async () => {
     try {
@@ -121,6 +118,54 @@ export default function ProductManagement() {
     });
   };
 
+  const uploadImage = async (file: File): Promise<{ thumbnailUrl: string; originalUrl: string }> => {
+    setIsUploading(true);
+    setUploadProgress(0);
+
+    try {
+      // Upload original image
+      const originalFormData = new FormData();
+      originalFormData.append('image', file);
+      const originalResponse = await axios.post('/api/upload', originalFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const progress = progressEvent.total
+            ? Math.round((progressEvent.loaded * 100) / progressEvent.total) / 2
+            : 0;
+          setUploadProgress(progress);
+        },
+      });
+
+      // Resize and upload thumbnail
+      const resizedImage = await resizeImage(file);
+      const thumbnailFormData = new FormData();
+      thumbnailFormData.append('image', resizedImage);
+      const thumbnailResponse = await axios.post('/api/upload', thumbnailFormData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+        onUploadProgress: (progressEvent) => {
+          const progress = progressEvent.total
+            ? 50 + Math.round((progressEvent.loaded * 100) / progressEvent.total) / 2
+            : 50;
+          setUploadProgress(progress);
+        },
+      });
+
+      return {
+        thumbnailUrl: thumbnailResponse.data.url,
+        originalUrl: originalResponse.data.url,
+      };
+    } catch (error) {
+      console.error('Error uploading image:', error);
+      throw error;
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
   const handleSaveProduct = async () => {
     if (!selectedFile && !editingProduct) {
       alert('لطفا یک تصویر انتخاب کنید');
@@ -135,46 +180,9 @@ export default function ProductManagement() {
       let originalImageUrl = productData.originalImage;
 
       if (selectedFile) {
-        // Delete old images if editing
-        if (editingProduct) {
-          if (editingProduct.image) {
-            const oldThumbnailRef = ref(storage, editingProduct.image);
-            await deleteObject(oldThumbnailRef).catch(console.error);
-          }
-          if (editingProduct.originalImage) {
-            const oldOriginalRef = ref(storage, editingProduct.originalImage);
-            await deleteObject(oldOriginalRef).catch(console.error);
-          }
-        }
-
-        // Upload original image
-        const originalImageRef = ref(storage, `products/original/${uuidv4()}_${selectedFile.name}`);
-        const uploadTask = uploadBytesResumable(originalImageRef, selectedFile);
-        
-        uploadTask.on('state_changed', 
-          (snapshot) => {
-            const progress = (snapshot.bytesTransferred / snapshot.totalBytes) * 50;
-            setUploadProgress(progress);
-          }
-        );
-
-        await uploadTask;
-        originalImageUrl = await getDownloadURL(originalImageRef);
-
-        // Resize and upload thumbnail
-        const resizedImage = await resizeImage(selectedFile);
-        const thumbnailRef = ref(storage, `products/thumbnails/${uuidv4()}_${selectedFile.name}`);
-        const thumbnailTask = uploadBytesResumable(thumbnailRef, resizedImage);
-        
-        thumbnailTask.on('state_changed',
-          (snapshot) => {
-            const progress = 50 + (snapshot.bytesTransferred / snapshot.totalBytes) * 50;
-            setUploadProgress(progress);
-          }
-        );
-
-        await thumbnailTask;
-        thumbnailUrl = await getDownloadURL(thumbnailRef);
+        const uploadResult = await uploadImage(selectedFile);
+        thumbnailUrl = uploadResult.thumbnailUrl;
+        originalImageUrl = uploadResult.originalUrl;
       }
 
       const newProductData = {
@@ -230,31 +238,6 @@ export default function ProductManagement() {
   const handleDeleteProduct = async (product: Product) => {
     if (window.confirm('آیا از حذف این محصول اطمینان دارید؟')) {
       try {
-        // Delete both images from storage
-        if (product.image) {
-          try {
-            // Extract path after /o/ and before ?
-            const imagePath = product.image.split('/o/')[1].split('?')[0];
-            const decodedPath = decodeURIComponent(imagePath);
-            const imageRef = ref(storage, decodedPath);
-            await deleteObject(imageRef);
-          } catch (error) {
-            console.error('Error deleting thumbnail:', error);
-          }
-        }
-
-        if (product.originalImage) {
-          try {
-            const originalPath = product.originalImage.split('/o/')[1].split('?')[0];
-            const decodedPath = decodeURIComponent(originalPath);
-            const originalRef = ref(storage, decodedPath);
-            await deleteObject(originalRef);
-          } catch (error) {
-            console.error('Error deleting original image:', error);
-          }
-        }
-
-        // Delete product document
         await axios.delete(`/api/products/${product.id}`);
         await loadProducts();
       } catch (error) {
@@ -300,237 +283,234 @@ export default function ProductManagement() {
     setSelectedFile(null);
   };
 
-  if (loading) return <LoadingSpinner />;
-  if (!user || !isAdmin) {
-    router.push('/login');
+  if (status === 'loading') return <LoadingSpinner />;
+  if (status === 'unauthenticated' || session?.user?.role !== 'admin') {
     return null;
   }
 
   return (
-    <FirebaseWrapper>
-      <div dir="rtl" className="p-6">
-        <div className="mb-4">
-          <Link href="/admin-panel" className="text-blue-500 hover:underline">
-            بازگشت به پنل مدیریت
-          </Link>
-        </div>
-
-        <div className="flex justify-between items-center mb-6">
-          <h1 className="text-2xl font-bold">مدیریت محصولات</h1>
-          <Button
-            variant="contained"
-            startIcon={<Add />}
-            onClick={() => setIsDialogOpen(true)}
-          >
-            افزودن محصول جدید
-          </Button>
-        </div>
-
-        <Dialog 
-          open={isDialogOpen} 
-          onClose={handleCloseDialog}
-          maxWidth="md"
-          fullWidth
-        >
-          <DialogTitle>
-            {editingProduct ? 'ویرایش محصول' : 'افزودن محصول جدید'}
-          </DialogTitle>
-          <DialogContent>
-            <div className="space-y-4 mt-4">
-              <TextField
-                fullWidth
-                label="نام محصول"
-                value={productData.name}
-                onChange={(e) => setProductData({ ...productData, name: e.target.value })}
-                required
-              />
-              <TextField
-                fullWidth
-                label="قیمت"
-                type="number"
-                value={productData.price}
-                onChange={(e) => setProductData({ ...productData, price: Number(e.target.value) })}
-                required
-              />
-              <FormControl fullWidth required>
-                <InputLabel>دسته‌بندی</InputLabel>
-                <Select
-                  value={productData.categoryId}
-                  onChange={(e) => {
-                    const selectedCategory = categories
-                      .flatMap(group => group.items)
-                      .find(item => item.categoryId === e.target.value);
-                    
-                    setProductData({
-                      ...productData,
-                      categoryId: e.target.value,
-                      categoryTitle: selectedCategory?.title || ''
-                    });
-                  }}
-                  label="دسته‌بندی"
-                >
-                  {categories.map((group) => [
-                    <ListSubheader key={group.id}>
-                      {group.groupTitle}
-                    </ListSubheader>,
-                    ...group.items.map((item) => (
-                      <MenuItem 
-                        key={item.categoryId} 
-                        value={item.categoryId}
-                        className="pr-8"
-                      >
-                        {item.title}
-                      </MenuItem>
-                    ))
-                  ])}
-                </Select>
-              </FormControl>
-              <TextField
-                fullWidth
-                label="طول (سانتی‌متر)"
-                type="number"
-                value={productData.specs.length}
-                onChange={(e) => setProductData({
-                  ...productData,
-                  specs: { ...productData.specs, length: Number(e.target.value) }
-                })}
-              />
-              <TextField
-                fullWidth
-                label="عرض (سانتی‌متر)"
-                type="number"
-                value={productData.specs.width}
-                onChange={(e) => setProductData({
-                  ...productData,
-                  specs: { ...productData.specs, width: Number(e.target.value) }
-                })}
-              />
-              <TextField
-                fullWidth
-                label="ارتفاع (سانتی‌متر)"
-                type="number"
-                value={productData.specs.height}
-                onChange={(e) => setProductData({
-                  ...productData,
-                  specs: { ...productData.specs, height: Number(e.target.value) }
-                })}
-              />
-              <TextField
-                fullWidth
-                label="وزن (کیلوگرم)"
-                type="number"
-                value={productData.specs.weight}
-                onChange={(e) => setProductData({
-                  ...productData,
-                  specs: { ...productData.specs, weight: Number(e.target.value) }
-                })}
-              />
-              <TextField
-                fullWidth
-                label="توضیحات"
-                multiline
-                rows={4}
-                value={productData.description}
-                onChange={(e) => setProductData({ ...productData, description: e.target.value })}
-              />
-              <input
-                type="file"
-                accept="image/*"
-                onChange={handleFileSelect}
-                className="w-full"
-              />
-              {isUploading && (
-                <div className="mt-2">
-                  <LinearProgress variant="determinate" value={uploadProgress} />
-                  <Typography variant="body2" color="textSecondary" align="center">
-                    {Math.round(uploadProgress)}%
-                  </Typography>
-                </div>
-              )}
-            </div>
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={handleCloseDialog}>انصراف</Button>
-            <Button 
-              onClick={handleSaveProduct}
-              variant="contained"
-              disabled={isUploading || !productData.name || !productData.price || !productData.categoryId}
-            >
-              {isUploading ? 'در حال آپلود...' : 'ذخیره'}
-            </Button>
-          </DialogActions>
-        </Dialog>
-
-        <TableContainer component={Paper} className="mt-6">
-          <Table>
-            <TableHead>
-              <TableRow>
-                <TableCell>تصویر</TableCell>
-                <TableCell>نام محصول</TableCell>
-                <TableCell>قیمت</TableCell>
-                <TableCell>دسته‌بندی</TableCell>
-                <TableCell>ابعاد (سانتی‌متر)</TableCell>
-                <TableCell>عملیات</TableCell>
-              </TableRow>
-            </TableHead>
-            <TableBody>
-              {products
-                .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
-                .map((product) => (
-                  <TableRow key={product.id}>
-                    <TableCell className="text-center">
-                      <div className="flex justify-center">
-                        <img 
-                          src={product.image} 
-                          alt={product.name}
-                          className="w-16 h-16 object-cover rounded"
-                        />
-                      </div>
-                    </TableCell>
-                    <TableCell>{product.name}</TableCell>
-                    <TableCell>{product.price.toLocaleString()} تومان</TableCell>
-                    <TableCell>{product.categoryTitle}</TableCell>
-                    <TableCell>
-                      {product.specs ? 
-                        `${product.specs.length}×${product.specs.width}×${product.specs.height} - ${product.specs.weight}kg` : 
-                        '-'
-                      }
-                    </TableCell>
-                    <TableCell>
-                      <IconButton 
-                        onClick={() => handleEditProduct(product)}
-                        color="primary"
-                      >
-                        <Edit />
-                      </IconButton>
-                      <IconButton 
-                        onClick={() => handleDeleteProduct(product)}
-                        color="error"
-                      >
-                        <Delete />
-                      </IconButton>
-                    </TableCell>
-                  </TableRow>
-                ))}
-            </TableBody>
-          </Table>
-          <TablePagination
-            component="div"
-            count={products.length}
-            page={page}
-            onPageChange={(e, newPage) => setPage(newPage)}
-            rowsPerPage={rowsPerPage}
-            onRowsPerPageChange={(e) => {
-              setRowsPerPage(parseInt(e.target.value, 10));
-              setPage(0);
-            }}
-            labelRowsPerPage="تعداد در صفحه:"
-            labelDisplayedRows={({ from, to, count }) => 
-              `${from}-${to} از ${count}`
-            }
-          />
-        </TableContainer>
+    <div dir="rtl" className="p-6">
+      <div className="mb-4">
+        <Link href="/admin-panel" className="text-blue-500 hover:underline">
+          بازگشت به پنل مدیریت
+        </Link>
       </div>
-    </FirebaseWrapper>
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-2xl font-bold">مدیریت محصولات</h1>
+        <Button
+          variant="contained"
+          startIcon={<Add />}
+          onClick={() => setIsDialogOpen(true)}
+        >
+          افزودن محصول جدید
+        </Button>
+      </div>
+
+      <Dialog 
+        open={isDialogOpen} 
+        onClose={handleCloseDialog}
+        maxWidth="md"
+        fullWidth
+      >
+        <DialogTitle>
+          {editingProduct ? 'ویرایش محصول' : 'افزودن محصول جدید'}
+        </DialogTitle>
+        <DialogContent>
+          <div className="space-y-4 mt-4">
+            <TextField
+              fullWidth
+              label="نام محصول"
+              value={productData.name}
+              onChange={(e) => setProductData({ ...productData, name: e.target.value })}
+              required
+            />
+            <TextField
+              fullWidth
+              label="قیمت"
+              type="number"
+              value={productData.price}
+              onChange={(e) => setProductData({ ...productData, price: Number(e.target.value) })}
+              required
+            />
+            <FormControl fullWidth required>
+              <InputLabel>دسته‌بندی</InputLabel>
+              <Select
+                value={productData.categoryId}
+                onChange={(e) => {
+                  const selectedCategory = categories
+                    .flatMap(group => group.items)
+                    .find(item => item.categoryId === e.target.value);
+                  
+                  setProductData({
+                    ...productData,
+                    categoryId: e.target.value,
+                    categoryTitle: selectedCategory?.title || ''
+                  });
+                }}
+                label="دسته‌بندی"
+              >
+                {categories.map((group) => [
+                  <ListSubheader key={group.id}>
+                    {group.groupTitle}
+                  </ListSubheader>,
+                  ...group.items.map((item) => (
+                    <MenuItem 
+                      key={item.categoryId} 
+                      value={item.categoryId}
+                      className="pr-8"
+                    >
+                      {item.title}
+                    </MenuItem>
+                  ))
+                ])}
+              </Select>
+            </FormControl>
+            <TextField
+              fullWidth
+              label="طول (سانتی‌متر)"
+              type="number"
+              value={productData.specs.length}
+              onChange={(e) => setProductData({
+                ...productData,
+                specs: { ...productData.specs, length: Number(e.target.value) }
+              })}
+            />
+            <TextField
+              fullWidth
+              label="عرض (سانتی‌متر)"
+              type="number"
+              value={productData.specs.width}
+              onChange={(e) => setProductData({
+                ...productData,
+                specs: { ...productData.specs, width: Number(e.target.value) }
+              })}
+            />
+            <TextField
+              fullWidth
+              label="ارتفاع (سانتی‌متر)"
+              type="number"
+              value={productData.specs.height}
+              onChange={(e) => setProductData({
+                ...productData,
+                specs: { ...productData.specs, height: Number(e.target.value) }
+              })}
+            />
+            <TextField
+              fullWidth
+              label="وزن (کیلوگرم)"
+              type="number"
+              value={productData.specs.weight}
+              onChange={(e) => setProductData({
+                ...productData,
+                specs: { ...productData.specs, weight: Number(e.target.value) }
+              })}
+            />
+            <TextField
+              fullWidth
+              label="توضیحات"
+              multiline
+              rows={4}
+              value={productData.description}
+              onChange={(e) => setProductData({ ...productData, description: e.target.value })}
+            />
+            <input
+              type="file"
+              accept="image/*"
+              onChange={handleFileSelect}
+              className="w-full"
+            />
+            {isUploading && (
+              <div className="mt-2">
+                <LinearProgress variant="determinate" value={uploadProgress} />
+                <Typography variant="body2" color="textSecondary" align="center">
+                  {Math.round(uploadProgress)}%
+                </Typography>
+              </div>
+            )}
+          </div>
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={handleCloseDialog}>انصراف</Button>
+          <Button 
+            onClick={handleSaveProduct}
+            variant="contained"
+            disabled={isUploading || !productData.name || !productData.price || !productData.categoryId}
+          >
+            {isUploading ? 'در حال آپلود...' : 'ذخیره'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <TableContainer component={Paper} className="mt-6">
+        <Table>
+          <TableHead>
+            <TableRow>
+              <TableCell>تصویر</TableCell>
+              <TableCell>نام محصول</TableCell>
+              <TableCell>قیمت</TableCell>
+              <TableCell>دسته‌بندی</TableCell>
+              <TableCell>ابعاد (سانتی‌متر)</TableCell>
+              <TableCell>عملیات</TableCell>
+            </TableRow>
+          </TableHead>
+          <TableBody>
+            {products
+              .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
+              .map((product) => (
+                <TableRow key={product.id}>
+                  <TableCell className="text-center">
+                    <div className="flex justify-center">
+                      <img 
+                        src={product.image} 
+                        alt={product.name}
+                        className="w-16 h-16 object-cover rounded"
+                      />
+                    </div>
+                  </TableCell>
+                  <TableCell>{product.name}</TableCell>
+                  <TableCell>{product.price.toLocaleString()} تومان</TableCell>
+                  <TableCell>{product.categoryTitle}</TableCell>
+                  <TableCell>
+                    {product.specs ? 
+                      `${product.specs.length}×${product.specs.width}×${product.specs.height} - ${product.specs.weight}kg` : 
+                      '-'
+                    }
+                  </TableCell>
+                  <TableCell>
+                    <IconButton 
+                      onClick={() => handleEditProduct(product)}
+                      color="primary"
+                    >
+                      <Edit />
+                    </IconButton>
+                    <IconButton 
+                      onClick={() => handleDeleteProduct(product)}
+                      color="error"
+                    >
+                      <Delete />
+                    </IconButton>
+                  </TableCell>
+                </TableRow>
+              ))}
+          </TableBody>
+        </Table>
+        <TablePagination
+          component="div"
+          count={products.length}
+          page={page}
+          onPageChange={(e, newPage) => setPage(newPage)}
+          rowsPerPage={rowsPerPage}
+          onRowsPerPageChange={(e) => {
+            setRowsPerPage(parseInt(e.target.value, 10));
+            setPage(0);
+          }}
+          labelRowsPerPage="تعداد در صفحه:"
+          labelDisplayedRows={({ from, to, count }) => 
+            `${from}-${to} از ${count}`
+          }
+        />
+      </TableContainer>
+    </div>
   );
 } 

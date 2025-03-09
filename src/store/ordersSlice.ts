@@ -1,30 +1,13 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
-import { collection, query, where, orderBy, getDocs } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
 import { Order } from '@/types/types';
 import { RootState } from '@/store/store';
+import axios from '@/lib/axios';
 
 export const fetchOrders = createAsyncThunk(
   'orders/fetchOrders',
   async (userId: string) => {
-    const ordersRef = collection(db, 'orders');
-    const q = query(
-      ordersRef,
-      where('userId', '==', userId),
-      where('finalized', '==', true),
-      orderBy('createdAt', 'desc')
-    );
-
-    const snapshot = await getDocs(q);
-    return snapshot.docs.map(doc => {
-      const data = doc.data();
-      return {
-        id: doc.id,
-        ...data,
-        // Convert Timestamp to ISO string for serialization
-        createdAt: data.createdAt.toDate().toISOString()
-      } as Order;
-    });
+    const response = await axios.get(`/api/orders?userId=${userId}`);
+    return response.data as Order[];
   }
 );
 
@@ -65,4 +48,4 @@ export default ordersSlice.reducer;
 
 // Add selector
 export const selectPendingOrders = (state: RootState) => 
-  state.orders.items.filter(order => order.status === 'pending' && order.finalized); 
+  state.orders.items.filter(order => order.status === 'pending'); 

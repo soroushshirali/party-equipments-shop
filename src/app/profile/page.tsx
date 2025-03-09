@@ -1,88 +1,192 @@
 "use client";
-import { useState } from 'react';
-import { useAuth } from '@/contexts/AuthContext';
-import { Button, TextField } from '@mui/material';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useSession, signOut } from 'next-auth/react';
+import {
+  Button,
+  TextField,
+  Typography,
+  Paper,
+  CircularProgress,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogActions
+} from '@mui/material';
+import axios from '@/lib/axios';
 
 export default function ProfilePage() {
-  const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
-  const [error, setError] = useState('');
-  const [message, setMessage] = useState('');
-  const { user, userData, updateUserPassword, signOut } = useAuth();
+  const { data: session, status } = useSession();
   const router = useRouter();
+  const [loading, setLoading] = useState(false);
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
+  const [passwordData, setPasswordData] = useState({
+    currentPassword: '',
+    newPassword: '',
+    confirmPassword: ''
+  });
+  const [error, setError] = useState('');
+  const [success, setSuccess] = useState('');
 
-  if (!user) {
-    router.push('/login');
-    return null;
-  }
+  useEffect(() => {
+    if (status === 'unauthenticated') {
+      router.push('/login');
+    }
+  }, [status, router]);
 
   const handlePasswordChange = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (newPassword !== confirmPassword) {
-      setError('رمز عبور و تکرار آن مطابقت ندارند');
+    setError('');
+    setSuccess('');
+
+    if (passwordData.newPassword !== passwordData.confirmPassword) {
+      setError('رمز عبور جدید و تکرار آن مطابقت ندارند');
       return;
     }
+
+    if (passwordData.newPassword.length < 6) {
+      setError('رمز عبور جدید باید حداقل ۶ کاراکتر باشد');
+      return;
+    }
+
+    setLoading(true);
     try {
-      await updateUserPassword(newPassword);
-      setMessage('رمز عبور با موفقیت تغییر کرد');
-      setError('');
-      setNewPassword('');
-      setConfirmPassword('');
-    } catch (error) {
-      setError('خطا در تغییر رمز عبور');
-      setMessage('');
+      await axios.post('/api/auth/change-password', {
+        currentPassword: passwordData.currentPassword,
+        newPassword: passwordData.newPassword
+      });
+
+      setSuccess('رمز عبور با موفقیت تغییر کرد');
+      setPasswordData({
+        currentPassword: '',
+        newPassword: '',
+        confirmPassword: ''
+      });
+      setIsChangePasswordOpen(false);
+    } catch (error: any) {
+      setError(error.response?.data?.error || 'خطا در تغییر رمز عبور');
+    } finally {
+      setLoading(false);
     }
   };
 
+  const handleSignOut = async () => {
+    await signOut({ redirect: true, callbackUrl: '/' });
+  };
+
+  if (status === 'loading') {
+    return (
+      <div className="flex justify-center items-center min-h-screen">
+        <CircularProgress />
+      </div>
+    );
+  }
+
+  if (!session?.user) {
+    return null;
+  }
+
   return (
-    <div className="max-w-md mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">پروفایل</h1>
-      <div className="mb-6 space-y-2">
-        <p>نام: {userData?.firstName}</p>
-        <p>نام خانوادگی: {userData?.lastName}</p>
-        <p>شماره تلفن: {userData?.phone}</p>
-        {userData?.email && <p>ایمیل: {userData.email}</p>}
-      </div>
-      <div className="bg-white rounded-lg shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4">تغییر رمز عبور</h2>
-        {error && <p className="text-red-500 mb-4">{error}</p>}
-        {message && <p className="text-green-500 mb-4">{message}</p>}
-        <form onSubmit={handlePasswordChange} className="space-y-4">
-          <TextField
-            fullWidth
-            type="password"
-            label="رمز عبور جدید"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            dir="ltr"
-          />
-          <TextField
-            fullWidth
-            type="password"
-            label="تکرار رمز عبور جدید"
-            value={confirmPassword}
-            onChange={(e) => setConfirmPassword(e.target.value)}
-            dir="ltr"
-          />
-          <Button
-            type="submit"
-            variant="contained"
-            fullWidth
-          >
-            تغییر رمز عبور
-          </Button>
-        </form>
-      </div>
-      <Button
-        onClick={signOut}
-        variant="outlined"
+    <div className="container mx-auto p-4" dir="rtl">
+      <Paper className="p-6 max-w-lg mx-auto">
+        <Typography variant="h4" className="mb-6">پروفایل کاربری</Typography>
+        
+        <div className="space-y-4">
+          <div>
+            <Typography variant="subtitle1" className="text-gray-600">نام و نام خانوادگی</Typography>
+            <Typography>{session.user.name}</Typography>
+          </div>
+          
+          <div>
+            <Typography variant="subtitle1" className="text-gray-600">ایمیل</Typography>
+            <Typography>{session.user.email}</Typography>
+          </div>
+
+          <div className="pt-4 space-x-4">
+            <Button
+              variant="contained"
+              onClick={() => setIsChangePasswordOpen(true)}
+            >
+              تغییر رمز عبور
+            </Button>
+            <Button
+              variant="outlined"
+              color="error"
+              onClick={handleSignOut}
+            >
+              خروج از حساب کاربری
+            </Button>
+          </div>
+        </div>
+      </Paper>
+
+      {/* Change Password Dialog */}
+      <Dialog
+        open={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+        maxWidth="sm"
         fullWidth
-        className="mt-6"
-        color="error"
       >
-        خروج از حساب کاربری
-      </Button>
+        <DialogTitle>تغییر رمز عبور</DialogTitle>
+        <form onSubmit={handlePasswordChange}>
+          <DialogContent>
+            {error && (
+              <Typography color="error" className="mb-4">{error}</Typography>
+            )}
+            {success && (
+              <Typography color="success" className="mb-4">{success}</Typography>
+            )}
+            <div className="space-y-4">
+              <TextField
+                fullWidth
+                type="password"
+                label="رمز عبور فعلی"
+                value={passwordData.currentPassword}
+                onChange={(e) => setPasswordData(prev => ({
+                  ...prev,
+                  currentPassword: e.target.value
+                }))}
+                required
+                dir="ltr"
+              />
+              <TextField
+                fullWidth
+                type="password"
+                label="رمز عبور جدید"
+                value={passwordData.newPassword}
+                onChange={(e) => setPasswordData(prev => ({
+                  ...prev,
+                  newPassword: e.target.value
+                }))}
+                required
+                dir="ltr"
+              />
+              <TextField
+                fullWidth
+                type="password"
+                label="تکرار رمز عبور جدید"
+                value={passwordData.confirmPassword}
+                onChange={(e) => setPasswordData(prev => ({
+                  ...prev,
+                  confirmPassword: e.target.value
+                }))}
+                required
+                dir="ltr"
+              />
+            </div>
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={() => setIsChangePasswordOpen(false)}>انصراف</Button>
+            <Button
+              type="submit"
+              variant="contained"
+              disabled={loading}
+            >
+              {loading ? <CircularProgress size={24} /> : 'تغییر رمز عبور'}
+            </Button>
+          </DialogActions>
+        </form>
+      </Dialog>
     </div>
   );
 } 
