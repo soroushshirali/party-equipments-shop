@@ -41,13 +41,17 @@ export default function Home() {
   }
 
   return (
-    <div className="container mx-auto p-4 md:p-8">
+    <div 
+      ref={containerRef}
+      className="container mx-auto p-4 md:p-8 home-container" 
+      style={{ cursor: 'default' }}
+      onMouseDown={(e) => e.preventDefault()}
+    >
       {categories.map((category) => (
         <div key={category.id} className="mb-12">
           <div className="flex justify-center mb-4">
             <div 
               className="text-center text-2xl md:text-3xl font-bold"
-              style={{ color: category.groupBorderColor || '#333' }}
               dir="rtl"
             >
               {category.groupTitle}
