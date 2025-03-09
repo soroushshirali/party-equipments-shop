@@ -9,7 +9,10 @@
 }
 
 .home-container a,
-.home-container button {
+.home-container button,
+.home-container [role="button"],
+.home-container .cursor-pointer,
+.home-container .hover-bounce {
   cursor: pointer !important;
 }
 

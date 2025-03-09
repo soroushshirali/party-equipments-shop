@@ -30,6 +30,34 @@ export default function Home() {
     fetchCategories();
   }, []);
 
+  // Remove focus and prevent text cursor
+  useEffect(() => {
+    // Blur any focused element
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+
+    // Add event listener to prevent text cursor
+    const container = containerRef.current;
+    if (container) {
+      const preventTextCursor = (e: MouseEvent) => {
+        if (!(e.target instanceof HTMLInputElement) && 
+            !(e.target instanceof HTMLTextAreaElement) && 
+            !(e.target as HTMLElement).isContentEditable) {
+          document.body.style.cursor = 'default';
+        }
+      };
+
+      container.addEventListener('mousedown', preventTextCursor);
+      container.addEventListener('click', preventTextCursor);
+
+      return () => {
+        container.removeEventListener('mousedown', preventTextCursor);
+        container.removeEventListener('click', preventTextCursor);
+      };
+    }
+  }, [loading]);
+
   if (loading) {
     return (
       <div className="flex justify-center items-center min-h-screen">
