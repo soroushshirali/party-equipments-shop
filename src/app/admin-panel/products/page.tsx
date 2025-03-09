@@ -18,6 +18,7 @@ import { ref, uploadBytes, getDownloadURL, uploadBytesResumable, deleteObject } 
 import { v4 as uuidv4 } from 'uuid';
 import { Product, CategoryGroup } from '@/types/types';
 import Link from 'next/link';
+import axios from 'axios';
 
 export default function ProductManagement() {
   const { user, isAdmin, loading } = useAuth();
@@ -48,20 +49,20 @@ export default function ProductManagement() {
   });
 
   useEffect(() => {
+    if (!loading && (!user || !isAdmin)) {
+      router.push('/login');
+    }
+  }, [user, isAdmin, loading, router]);
+
+  useEffect(() => {
     loadCategories();
     loadProducts();
   }, []);
 
   const loadCategories = async () => {
     try {
-      const categoriesRef = collection(db, 'categories');
-      const q = query(categoriesRef, orderBy('groupTitle'));
-      const snapshot = await getDocs(q);
-      const categoriesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as CategoryGroup[];
-      setCategories(categoriesData);
+      const response = await axios.get('/api/categories');
+      setCategories(response.data);
     } catch (error) {
       console.error('Error loading categories:', error);
     }
@@ -69,14 +70,8 @@ export default function ProductManagement() {
 
   const loadProducts = async () => {
     try {
-      const productsRef = collection(db, 'products');
-      const q = query(productsRef, orderBy('name'));
-      const snapshot = await getDocs(q);
-      const productsData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as Product[];
-      setProducts(productsData);
+      const response = await axios.get('/api/products');
+      setProducts(response.data);
     } catch (error) {
       console.error('Error loading products:', error);
     }
@@ -88,25 +83,26 @@ export default function ProductManagement() {
     }
   };
 
-  const resizeImage = async (file: File, maxSize: number): Promise<Blob> => {
+  const resizeImage = async (file: File): Promise<Blob> => {
     return new Promise((resolve) => {
       const reader = new FileReader();
       reader.onload = (e) => {
         const img = new Image();
         img.onload = () => {
           const canvas = document.createElement('canvas');
+          const MAX_SIZE = 800;
           let width = img.width;
           let height = img.height;
 
           if (width > height) {
-            if (width > maxSize) {
-              height = Math.round((height * maxSize) / width);
-              width = maxSize;
+            if (width > MAX_SIZE) {
+              height = Math.round((height * MAX_SIZE) / width);
+              width = MAX_SIZE;
             }
           } else {
-            if (height > maxSize) {
-              width = Math.round((width * maxSize) / height);
-              height = maxSize;
+            if (height > MAX_SIZE) {
+              width = Math.round((width * MAX_SIZE) / height);
+              height = MAX_SIZE;
             }
           }
 
@@ -166,7 +162,7 @@ export default function ProductManagement() {
         originalImageUrl = await getDownloadURL(originalImageRef);
 
         // Resize and upload thumbnail
-        const resizedImage = await resizeImage(selectedFile, 500);
+        const resizedImage = await resizeImage(selectedFile);
         const thumbnailRef = ref(storage, `products/thumbnails/${uuidv4()}_${selectedFile.name}`);
         const thumbnailTask = uploadBytesResumable(thumbnailRef, resizedImage);
         
@@ -198,9 +194,9 @@ export default function ProductManagement() {
       };
 
       if (editingProduct) {
-        await updateDoc(doc(db, 'products', editingProduct.id), newProductData);
+        await axios.put(`/api/products/${editingProduct.id}`, newProductData);
       } else {
-        await addDoc(collection(db, 'products'), newProductData);
+        await axios.post('/api/products', newProductData);
       }
 
       setIsDialogOpen(false);
@@ -259,7 +255,7 @@ export default function ProductManagement() {
         }
 
         // Delete product document
-        await deleteDoc(doc(db, 'products', product.id));
+        await axios.delete(`/api/products/${product.id}`);
         await loadProducts();
       } catch (error) {
         console.error('Error deleting product:', error);
