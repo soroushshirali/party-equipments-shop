@@ -23,12 +23,12 @@ import {
 import { Edit, Delete, Add, ArrowBack } from '@mui/icons-material';
 import { ChromePicker } from 'react-color';
 import { db, storage } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, deleteDoc, query, orderBy, addDoc, where } from 'firebase/firestore';
 import { CategoryGroup, CategoryItem } from '@/types/types';
 import { ref, uploadBytes, getDownloadURL, deleteObject, ref as storageRef, uploadBytesResumable } from 'firebase/storage';
 import { v4 as uuidv4 } from 'uuid';
 import Link from 'next/link';
 import { FirebaseWrapper } from '@/components/FirebaseWrapper';
+import axios from 'axios';
 
 // Add this function to resize the image
 async function resizeImage(file: File): Promise<Blob> {
@@ -147,13 +147,8 @@ export default function CategoryManagement() {
 
   const loadCategories = async () => {
     try {
-      const categoriesRef = collection(db, 'categories');
-      const q = query(categoriesRef, orderBy('groupTitle'));
-      const snapshot = await getDocs(q);
-      const categoriesData = snapshot.docs.map(doc => ({
-        id: doc.id,
-        ...doc.data()
-      })) as CategoryGroup[];
+      const response = await axios.get('/api/categories');
+      const categoriesData = response.data;
       setGroups(categoriesData);
     } catch (error) {
       console.error('Error loading categories:', error);
@@ -181,7 +176,7 @@ export default function CategoryManagement() {
 
     if (confirm('آیا از حذف این گروه اطمینان دارید؟')) {
       try {
-        await deleteDoc(doc(db, 'categories', groupId));
+        await axios.delete(`/api/categories/${groupId}`);
         await loadCategories();
       } catch (error) {
         console.error('Error deleting group:', error);
@@ -190,50 +185,60 @@ export default function CategoryManagement() {
     }
   };
 
-  const handleCreateGroup = async () => {
+  const handleSaveGroup = async () => {
     try {
-      const newGroup = {
-        groupTitle,
-        groupBorderColor: selectedColor,
+      // Ensure we have required fields
+      if (!groupTitle.trim()) {
+        alert('لطفا عنوان گروه را وارد کنید');
+        return;
+      }
+
+      const groupData = {
+        groupTitle: groupTitle.trim(),
+        groupBorderColor: selectedColor || '#000000',
         items: []
       };
 
-      const docRef = await addDoc(collection(db, 'categories'), newGroup);
-      
-      setGroups(prevGroups => [...prevGroups, { ...newGroup, id: docRef.id }]);
-      setIsGroupDialogOpen(false);
-      setGroupTitle('');
-      setSelectedColor('#000000');
-    } catch (error) {
-      console.error('Error creating group:', error);
-      alert('خطا در ایجاد گروه');
-    }
-  };
-
-  const handleSaveGroup = async () => {
-    try {
       if (selectedGroup) {
         // Editing existing group
         const updatedGroup = {
           ...selectedGroup,
-          groupTitle,
-          groupBorderColor: selectedColor,
+          groupTitle: groupTitle.trim(),
+          groupBorderColor: selectedColor
         };
 
-        await setDoc(doc(db, 'categories', selectedGroup.id!), updatedGroup);
+        const response = await axios.put(`/api/categories/${selectedGroup.id}`, updatedGroup);
+        const savedGroup = response.data;
+        
         setGroups(prevGroups => 
           prevGroups.map(group => 
-            group.id === selectedGroup.id ? updatedGroup : group
+            group.id === selectedGroup.id ? savedGroup : group
           )
         );
       } else {
         // Creating new group
-        await handleCreateGroup();
+        try {
+          console.log('Attempting to create new group with data:', groupData);
+          const response = await axios.post('/api/categories', groupData);
+          console.log('Server response:', response.data);
+          const createdGroup = response.data;
+          
+          setGroups(prevGroups => [...prevGroups, createdGroup]);
+        } catch (error: any) {
+          console.error('Failed to create group. Server response:', error.response?.data);
+          console.error('Error status:', error.response?.status);
+          console.error('Error message:', error.message);
+          throw error;
+        }
       }
+      
       setIsGroupDialogOpen(false);
-    } catch (error) {
+      setGroupTitle('');
+      setSelectedColor('#000000');
+    } catch (error: any) {
       console.error('Error saving group:', error);
-      alert('خطا در ذخیره گروه');
+      const errorMessage = error.response?.data?.message || 'خطا در ذخیره گروه';
+      alert(errorMessage);
     }
   };
 
@@ -256,14 +261,14 @@ export default function CategoryManagement() {
   const handleDeleteItem = async (groupId: string, item: CategoryItem) => {
     try {
       // Check if any products use this category
-      const productsRef = collection(db, 'products');
-      const q = query(productsRef, where('categoryId', '==', item.categoryId));
-      const snapshot = await getDocs(q);
+      // const productsRef = collection(db, 'products');
+      // const q = query(productsRef, where('categoryId', '==', item.categoryId));
+      // const snapshot = await getDocs(q);
 
-      if (!snapshot.empty) {
-        alert('لطفاً ابتدا تمام محصولات مرتبط با این دسته‌بندی را حذف کنید');
-        return;
-      }
+      // if (!snapshot.empty) {
+      //   alert('لطفاً ابتدا تمام محصولات مرتبط با این دسته‌بندی را حذف کنید');
+      //   return;
+      // }
 
       if (window.confirm('آیا از حذف این دسته‌بندی اطمینان دارید؟')) {
         // Delete image and category as before
@@ -281,13 +286,14 @@ export default function CategoryManagement() {
 
         const updatedItems = group.items.filter(i => i.categoryId !== item.categoryId);
         
-        await setDoc(doc(db, 'categories', groupId), {
+        // Changed from setDoc to axios.put
+        await axios.put(`/api/categories/${groupId}`, {
           ...group,
           items: updatedItems
         });
-        
-        setGroups(prevGroups => 
-          prevGroups.map(g => 
+
+        setGroups(prevGroups =>
+          prevGroups.map(g =>
             g.id === groupId ? { ...g, items: updatedItems } : g
           )
         );
@@ -362,7 +368,7 @@ export default function CategoryManagement() {
         items: updatedItems
       };
 
-      await setDoc(doc(db, 'categories', selectedGroup.id!), updatedGroup);
+      await axios.put(`/api/categories/${selectedGroup.id}`, updatedGroup);
       
       setGroups(prevGroups => 
         prevGroups.map(group => 
@@ -384,27 +390,27 @@ export default function CategoryManagement() {
     }
   };
 
-  const handleDelete = async (categoryId: string, imagePath: string) => {
-    try {
-      // Try to delete the image first
-      try {
-        const imageRef = ref(storage, imagePath);
-        await deleteObject(imageRef);
-      } catch (error: any) {
-        // Just log the error and continue with category deletion
-        console.log('Error deleting image:', error.message);
-      }
+  // const handleDelete = async (categoryId: string, imagePath: string) => {
+  //   try {
+  //     // Try to delete the image first
+  //     try {
+  //       const imageRef = ref(storage, imagePath);
+  //       await deleteObject(imageRef);
+  //     } catch (error: any) {
+  //       // Just log the error and continue with category deletion
+  //       console.log('Error deleting image:', error.message);
+  //     }
 
-      // Always delete the category document, regardless of image deletion success
-      await deleteDoc(doc(db, 'categories', categoryId));
+  //     // Always delete the category document, regardless of image deletion success
+  //     await deleteDoc(doc(db, 'categories', categoryId));
       
-      // Update the categories list
-      setGroups(groups.filter(cat => cat.id !== categoryId));
-    } catch (error) {
-      console.error('Error deleting category document:', error);
-      alert('خطا در حذف دسته‌بندی');
-    }
-  };
+  //     // Update the categories list
+  //     setGroups(groups.filter(cat => cat.id !== categoryId));
+  //   } catch (error) {
+  //     console.error('Error deleting category document:', error);
+  //     alert('خطا در حذف دسته‌بندی');
+  //   }
+  // };
 
   if (loading || !user || !isAdmin) return null;
 
