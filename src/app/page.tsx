@@ -1,12 +1,14 @@
 // src/app/page.tsx
 "use client";
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import { CircularProgress } from '@mui/material';
 import { CategorySection } from '@/components/CategorySection';
 import axios from '@/lib/axios';
 import { CategoryGroup } from '@/types/types';
+import './home.css';
 
 export default function Home() {
+  const containerRef = useRef<HTMLDivElement>(null);
   const [categories, setCategories] = useState<CategoryGroup[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
