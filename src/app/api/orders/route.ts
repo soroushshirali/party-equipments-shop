@@ -3,10 +3,12 @@ import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import { getServerSession } from 'next-auth';
 import { authOptions } from '@/app/api/auth/[...nextauth]/route';
+import { User } from '@/lib/models/User';
 
 interface OrderDocument extends mongoose.Document {
   userId: string;
   userPhoneNumber: string;
+  userName: string;
   items: Array<{
     productId: string;
     quantity: number;
@@ -25,6 +27,10 @@ const OrderSchema = new mongoose.Schema({
   userPhoneNumber: {
     type: String,
     required: [true, 'User phone number is required']
+  },
+  userName: {
+    type: String,
+    required: [true, 'User name is required']
   },
   items: [{
     productId: {
@@ -80,6 +86,7 @@ export async function GET(request: Request) {
       id: order._id.toString(),
       userId: order.userId,
       userPhoneNumber: order.userPhoneNumber,
+      userName: order.userName,
       items: order.items,
       total: order.total,
       status: order.status,
@@ -117,10 +124,20 @@ export async function POST(request: Request) {
       return sum + (Number(item.price) * Number(item.quantity || 1));
     }, 0);
 
+    // Get user details
+    const user = await User.findById(session.user.id);
+    if (!user) {
+      return NextResponse.json({ error: 'User not found' }, { status: 404 });
+    }
+
+    // Create user name from first name and last name
+    const userName = `${user.firstName} ${user.lastName}`;
+
     // Create order data
     const orderData = {
       userId: session.user.id,
       userPhoneNumber: session.user.phoneNumber,
+      userName: userName,
       items: data.products,
       total,
       status: 'pending'
@@ -135,6 +152,7 @@ export async function POST(request: Request) {
       id: savedOrder._id.toString(),
       userId: savedOrder.userId,
       userPhoneNumber: savedOrder.userPhoneNumber,
+      userName: savedOrder.userName,
       items: savedOrder.items,
       total: savedOrder.total,
       status: savedOrder.status,

@@ -66,4 +66,9 @@ const OrderSchema = new mongoose.Schema({
   }
 });
 
-export const Order = mongoose.models.Order || mongoose.model('Order', OrderSchema); 
+// Delete any existing model to prevent schema mismatch
+if (mongoose.models.Order) {
+  delete mongoose.models.Order;
+}
+
+export const Order = mongoose.model('Order', OrderSchema); 
