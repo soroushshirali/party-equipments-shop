@@ -38,4 +38,34 @@ export async function GET(
       { status: 500 }
     );
   }
+}
+
+export async function DELETE(
+  request: Request,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const id = params.id;
+
+    // Connect to database
+    await connectToDatabase();
+
+    // Find and delete the image by ID
+    const deletedImage = await Image.findByIdAndDelete(id);
+
+    if (!deletedImage) {
+      return NextResponse.json(
+        { error: 'Image not found' },
+        { status: 404 }
+      );
+    }
+
+    return NextResponse.json({ message: 'Image deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting image:', error);
+    return NextResponse.json(
+      { error: 'Error deleting image' },
+      { status: 500 }
+    );
+  }
 } 

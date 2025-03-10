@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
+import { Image } from '@/lib/models/Image';
 
 // Define Product schema (same as in products/route.ts)
 const ProductSchema = new mongoose.Schema({
@@ -41,7 +42,7 @@ const ProductSchema = new mongoose.Schema({
     type: Date,
     default: Date.now
   }
-});
+}, { timestamps: true });
 
 // Get or create the Product model
 const Product = mongoose.models.Product || mongoose.model('Product', ProductSchema);
@@ -93,6 +94,29 @@ export async function PUT(
       }, { status: 400 });
     }
 
+    // Get the current product to check for image changes
+    const currentProduct = await Product.findById(params.id);
+    
+    if (!currentProduct) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+    
+    // Check if images have changed
+    const oldImageIds = [];
+    
+    if (currentProduct.image && data.image && currentProduct.image !== data.image) {
+      const imageId = currentProduct.image.split('/').pop();
+      if (imageId) oldImageIds.push(imageId);
+    }
+    
+    if (currentProduct.originalImage && data.originalImage && 
+        currentProduct.originalImage !== data.originalImage &&
+        currentProduct.originalImage !== currentProduct.image) {
+      const originalImageId = currentProduct.originalImage.split('/').pop();
+      if (originalImageId) oldImageIds.push(originalImageId);
+    }
+
+    // Update the product
     const updatedProduct = await Product.findByIdAndUpdate(
       params.id,
       {
@@ -109,8 +133,18 @@ export async function PUT(
       { new: true, runValidators: true }
     );
 
-    if (!updatedProduct) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    // Delete old images if they were changed
+    if (oldImageIds.length > 0) {
+      try {
+        // Delete each old image
+        for (const imageId of oldImageIds) {
+          await Image.findByIdAndDelete(imageId);
+        }
+        console.log(`Deleted ${oldImageIds.length} old images for product ${params.id}`);
+      } catch (imageError) {
+        console.error('Error deleting old product images:', imageError);
+        // We don't want to fail the product update if image deletion fails
+      }
     }
 
     const transformedProduct = {
@@ -143,10 +177,41 @@ export async function DELETE(
   try {
     await connectToDatabase();
     
+    // Find the product first to get image URLs
+    const product = await Product.findById(params.id);
+    
+    if (!product) {
+      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    }
+    
+    // Extract image IDs from URLs if they exist
+    const imageIds = [];
+    
+    if (product.image) {
+      const imageId = product.image.split('/').pop();
+      if (imageId) imageIds.push(imageId);
+    }
+    
+    if (product.originalImage && product.originalImage !== product.image) {
+      const originalImageId = product.originalImage.split('/').pop();
+      if (originalImageId) imageIds.push(originalImageId);
+    }
+    
+    // Delete the product
     const deletedProduct = await Product.findByIdAndDelete(params.id);
     
-    if (!deletedProduct) {
-      return NextResponse.json({ error: 'Product not found' }, { status: 404 });
+    // Delete associated images
+    if (imageIds.length > 0) {
+      try {
+        // Delete each image
+        for (const imageId of imageIds) {
+          await Image.findByIdAndDelete(imageId);
+        }
+        console.log(`Deleted ${imageIds.length} images for product ${params.id}`);
+      } catch (imageError) {
+        console.error('Error deleting product images:', imageError);
+        // We don't want to fail the product deletion if image deletion fails
+      }
     }
 
     return NextResponse.json({ message: 'Product deleted successfully' });
