@@ -107,29 +107,31 @@ export default function MyOrders() {
         <Table>
           <TableHead>
             <TableRow>
-              <TableCell>شماره سفارش</TableCell>
-              <TableCell>تاریخ</TableCell>
-              <TableCell>وضعیت</TableCell>
-              <TableCell>تعداد اقلام</TableCell>
-              <TableCell>مبلغ کل</TableCell>
+              <TableCell align="right">شماره سفارش</TableCell>
+              <TableCell align="right">تاریخ</TableCell>
+              <TableCell align="right">وضعیت</TableCell>
+              <TableCell align="right">تعداد اقلام</TableCell>
+              <TableCell align="right">مبلغ کل</TableCell>
             </TableRow>
           </TableHead>
           <TableBody>
             {orders.map((order) => (
               <TableRow key={order.id}>
-                <TableCell>{order.id}</TableCell>
-                <TableCell>
+                <TableCell align="right" component="th" scope="row">
+                  {order.id.slice(0, 8)}
+                </TableCell>
+                <TableCell align="right">
                   {new Date(order.createdAt).toLocaleDateString('fa-IR')}
                 </TableCell>
-                <TableCell>
-                  <Chip
-                    label={statusLabels[order.status]}
-                    color={statusColors[order.status]}
-                    size="small"
+                <TableCell align="right">
+                  <Chip 
+                    label={statusLabels[order.status]} 
+                    color={statusColors[order.status]} 
+                    size="small" 
                   />
                 </TableCell>
-                <TableCell>{order.items.length}</TableCell>
-                <TableCell>{order.total.toLocaleString()} تومان</TableCell>
+                <TableCell align="right">{order.items.length}</TableCell>
+                <TableCell align="right">{order.total.toLocaleString()} تومان</TableCell>
               </TableRow>
             ))}
           </TableBody>
