@@ -105,8 +105,6 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
                     <CartItem 
                       key={item.id} 
                       item={item}
-                      onRemove={onRemove}
-                      onUpdateQuantity={onUpdateQuantity}
                     />
                   ))}
                   <div className="p-4">
