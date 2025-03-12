@@ -10,9 +10,11 @@ import {
 
 interface CartItemProps {
   item: Product;
+  onRemove: (id: string) => Promise<void>;
+  onUpdateQuantity: (id: string, quantity: number) => Promise<void>;
 }
 
-export function CartItem({ item }: CartItemProps) {
+export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
   const dispatch = useAppDispatch();
   const loadingItemId = useAppSelector(selectLoadingItemId);
   const isLoading = loadingItemId === item.id;
@@ -21,7 +23,7 @@ export function CartItem({ item }: CartItemProps) {
     const newQuantity = (item.quantity || 0) + change;
     if (newQuantity >= 0) {
       try {
-        await dispatch(updateQuantity({ productId: item.id, quantity: newQuantity })).unwrap();
+        await onUpdateQuantity(item.id, newQuantity);
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
@@ -30,7 +32,7 @@ export function CartItem({ item }: CartItemProps) {
 
   const handleRemove = async () => {
     try {
-      await dispatch(removeFromCart(item.id)).unwrap();
+      await onRemove(item.id);
     } catch (error) {
       console.error('Error removing item:', error);
     }
