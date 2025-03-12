@@ -187,8 +187,13 @@ export default function CategoryManagement() {
     try {
       await axios.delete(`/api/categories/${groupId}`);
       await loadCategories();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting group:', error);
+      if (error.response && error.response.data && error.response.data.error) {
+        alert(error.response.data.error);
+      } else {
+        alert('خطا در حذف دسته‌بندی');
+      }
     }
   };
 
@@ -256,8 +261,13 @@ export default function CategoryManagement() {
     try {
       await axios.delete(`/api/categories/${groupId}/items/${item.categoryId}`);
       await loadCategories();
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error deleting item:', error);
+      if (error.response && error.response.data && error.response.data.error) {
+        alert(error.response.data.error);
+      } else {
+        alert('خطا در حذف آیتم');
+      }
     }
   };
 
@@ -336,9 +346,13 @@ export default function CategoryManagement() {
                   <TableRow key={item.categoryId}>
                     <TableCell>
                       <img 
-                        src={item.image || '/api/placeholder/50/50'} 
+                        src={`${item.image || '/api/placeholder/50/50'}?nocache=${Date.now()}`}
                         alt={item.title}
                         className="w-16 h-16 object-cover rounded"
+                        onError={(e) => {
+                          // If image fails to load, show placeholder
+                          e.currentTarget.src = '/api/placeholder/50/50';
+                        }}
                       />
                     </TableCell>
                     <TableCell>{item.title}</TableCell>

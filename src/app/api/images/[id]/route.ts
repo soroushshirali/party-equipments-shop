@@ -28,7 +28,11 @@ export async function GET(
     // Set appropriate headers
     response.headers.set('Content-Type', image.contentType);
     response.headers.set('Content-Disposition', `inline; filename="${image.filename}"`);
-    response.headers.set('Cache-Control', 'public, max-age=31536000'); // Cache for 1 year
+    
+    // Set cache control to prevent long-term caching
+    response.headers.set('Cache-Control', 'no-cache, no-store, must-revalidate');
+    response.headers.set('Pragma', 'no-cache');
+    response.headers.set('Expires', '0');
 
     return response;
   } catch (error) {
@@ -46,6 +50,7 @@ export async function DELETE(
 ) {
   try {
     const id = params.id;
+    console.log(`Attempting to delete image with ID: ${id}`);
 
     // Connect to database
     await connectToDatabase();
@@ -54,12 +59,14 @@ export async function DELETE(
     const deletedImage = await Image.findByIdAndDelete(id);
 
     if (!deletedImage) {
+      console.log(`Image with ID ${id} not found for deletion`);
       return NextResponse.json(
         { error: 'Image not found' },
         { status: 404 }
       );
     }
 
+    console.log(`Successfully deleted image with ID: ${id}`);
     return NextResponse.json({ message: 'Image deleted successfully' });
   } catch (error) {
     console.error('Error deleting image:', error);

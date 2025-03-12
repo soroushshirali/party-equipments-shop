@@ -1,6 +1,8 @@
 import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
+import axios from 'axios';
+import { Product } from '@/lib/models/Product';
 
 // Define Category schema (same as in categories/route.ts)
 const CategorySchema = new mongoose.Schema({
@@ -89,11 +91,49 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   try {
     await connectToDatabase();
     
-    const category = await Category.findByIdAndDelete(params.id);
+    // First check if there are any products using this category
+    if (mongoose.models.Product) {
+      const productsWithCategory = await Product.find({ 
+        $or: [
+          { categoryId: params.id },
+          { 'category.id': params.id }
+        ]
+      });
+      
+      if (productsWithCategory.length > 0) {
+        return NextResponse.json({ 
+          error: 'این دسته‌بندی دارای محصولات مرتبط است. ابتدا باید محصولات را حذف کنید.' 
+        }, { status: 400 });
+      }
+    }
+    
+    // Find the category to get its items before deleting
+    const category = await Category.findById(params.id);
     
     if (!category) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
     }
+    
+    // Delete all images associated with the category items
+    if (category.items && category.items.length > 0) {
+      console.log(`Deleting ${category.items.length} images from category items`);
+      
+      for (const item of category.items) {
+        if (item.image && item.image.startsWith('/api/images/')) {
+          try {
+            const imageId = item.image.split('/').pop();
+            console.log(`Deleting image with ID: ${imageId}`);
+            await axios.delete(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3000'}/api/images/${imageId}`);
+          } catch (imageError) {
+            console.error('Error deleting image:', imageError);
+            // Continue with category deletion even if image deletion fails
+          }
+        }
+      }
+    }
+    
+    // Delete the category
+    await Category.findByIdAndDelete(params.id);
     
     return NextResponse.json({ message: 'Category deleted successfully' });
   } catch (error) {
