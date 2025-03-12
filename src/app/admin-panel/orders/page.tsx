@@ -55,7 +55,7 @@ interface OrderItem {
 interface Order {
   id: string;
   userId: string;
-  userEmail: string;
+  userPhoneNumber: string;
   userName: string;
   items: OrderItem[];
   total: number;
@@ -358,7 +358,7 @@ export default function OrdersManagement() {
                 <div>
                   <h3 className="font-bold">اطلاعات مشتری</h3>
                   <p>نام: {selectedOrder.userName}</p>
-                  <p>ایمیل: {selectedOrder.userEmail}</p>
+                  <p>شماره تلفن: {selectedOrder.userPhoneNumber}</p>
                 </div>
                 <div>
                   <h3 className="font-bold">اطلاعات سفارش</h3>

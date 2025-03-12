@@ -48,7 +48,7 @@ export async function PATCH(
     return NextResponse.json({
       id: order._id.toString(),
       userId: order.userId,
-      userEmail: order.userEmail,
+      userPhoneNumber: order.userPhoneNumber,
       userName: order.userName,
       items: order.items,
       total: order.total,
