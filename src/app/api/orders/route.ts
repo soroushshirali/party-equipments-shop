@@ -11,6 +11,7 @@ interface OrderDocument extends mongoose.Document {
   userName: string;
   items: Array<{
     productId: string;
+    productName: string;
     quantity: number;
     price: number;
   }>;
@@ -36,6 +37,10 @@ const OrderSchema = new mongoose.Schema({
     productId: {
       type: String,
       required: [true, 'Product ID is required']
+    },
+    productName: {
+      type: String,
+      required: [true, 'Product name is required']
     },
     quantity: {
       type: Number,
@@ -138,7 +143,12 @@ export async function POST(request: Request) {
       userId: session.user.id,
       userPhoneNumber: session.user.phoneNumber,
       userName: userName,
-      items: data.products,
+      items: data.products.map(product => ({
+        productId: product.productId,
+        productName: product.productName || 'Unknown Product',
+        quantity: product.quantity || 1,
+        price: product.price
+      })),
       total,
       status: 'pending'
     };

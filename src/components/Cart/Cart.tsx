@@ -47,6 +47,7 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
       const response = await axios.post('/api/orders', {
         products: items.map(item => ({
           productId: item.id,
+          productName: item.name,
           quantity: item.quantity || 1,
           price: item.price
         }))
