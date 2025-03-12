@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server';
 import mongoose from 'mongoose';
 import { connectToDatabase } from '@/lib/mongodb';
 import axios from 'axios';
-import { Product } from '@/lib/models/Product';
 
 // Define Category schema (same as in categories/route.ts)
 const CategorySchema = new mongoose.Schema({
@@ -91,27 +90,42 @@ export async function DELETE(request: Request, { params }: { params: { id: strin
   try {
     await connectToDatabase();
     
-    // First check if there are any products using this category
-    if (mongoose.models.Product) {
-      const productsWithCategory = await Product.find({ 
-        $or: [
-          { categoryId: params.id },
-          { 'category.id': params.id }
-        ]
-      });
-      
-      if (productsWithCategory.length > 0) {
-        return NextResponse.json({ 
-          error: 'این دسته‌بندی دارای محصولات مرتبط است. ابتدا باید محصولات را حذف کنید.' 
-        }, { status: 400 });
-      }
-    }
-    
-    // Find the category to get its items before deleting
+    // Find the category to check if it has items
     const category = await Category.findById(params.id);
     
     if (!category) {
       return NextResponse.json({ error: 'Category not found' }, { status: 404 });
+    }
+    
+    // Check if the category has items
+    if (category.items && category.items.length > 0) {
+      return NextResponse.json({ 
+        error: 'این گروه دارای دسته‌بندی‌هایی است. ابتدا باید دسته‌بندی‌های گروه را حذف کنید.' 
+      }, { status: 400 });
+    }
+    
+    // Check if there are any products using this category
+    try {
+      // Dynamically import the Product model to avoid the import error
+      const { Product } = await import('@/lib/models/Product');
+      
+      if (Product) {
+        const productsWithCategory = await Product.find({ 
+          $or: [
+            { categoryId: params.id },
+            { 'category.id': params.id }
+          ]
+        });
+        
+        if (productsWithCategory.length > 0) {
+          return NextResponse.json({ 
+            error: 'این دسته‌بندی دارای محصولات مرتبط است. ابتدا باید محصولات را حذف کنید.' 
+          }, { status: 400 });
+        }
+      }
+    } catch (importError) {
+      console.error('Error importing Product model:', importError);
+      // Continue with deletion even if Product model is not available
     }
     
     // Delete all images associated with the category items

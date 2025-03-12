@@ -125,6 +125,30 @@ export async function DELETE(
       );
     }
     
+    // Check if there are any products using this category item
+    try {
+      // Dynamically import the Product model to avoid the import error
+      const { Product } = await import('@/lib/models/Product');
+      
+      if (Product) {
+        const productsWithCategory = await Product.find({ 
+          $or: [
+            { categoryId: itemId },
+            { 'category.id': itemId }
+          ]
+        });
+        
+        if (productsWithCategory.length > 0) {
+          return NextResponse.json({ 
+            error: 'این دسته‌بندی دارای محصولات مرتبط است. ابتدا باید محصولات مرتبط را حذف کنید.' 
+          }, { status: 400 });
+        }
+      }
+    } catch (importError) {
+      console.error('Error importing Product model:', importError);
+      // Continue with deletion even if Product model is not available
+    }
+    
     // If the item has an image, delete it from the database
     if (item.image && item.image.startsWith('/api/images/')) {
       try {
