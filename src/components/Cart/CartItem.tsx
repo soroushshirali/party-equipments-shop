@@ -10,11 +10,9 @@ import {
 
 interface CartItemProps {
   item: Product;
-  onRemove: (id: string) => Promise<void>;
-  onUpdateQuantity: (id: string, quantity: number) => Promise<void>;
 }
 
-export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
+export function CartItem({ item }: CartItemProps) {
   const dispatch = useAppDispatch();
   const loadingItemId = useAppSelector(selectLoadingItemId);
   const isLoading = loadingItemId === item.id;
@@ -23,7 +21,7 @@ export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
     const newQuantity = (item.quantity || 0) + change;
     if (newQuantity >= 0) {
       try {
-        await onUpdateQuantity(item.id, newQuantity);
+        await dispatch(updateQuantity({ productId: item.id, quantity: newQuantity })).unwrap();
       } catch (error) {
         console.error('Error updating quantity:', error);
       }
@@ -32,7 +30,7 @@ export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
 
   const handleRemove = async () => {
     try {
-      await onRemove(item.id);
+      await dispatch(removeFromCart(item.id)).unwrap();
     } catch (error) {
       console.error('Error removing item:', error);
     }
@@ -44,7 +42,7 @@ export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
         <img src={item.image} alt={item.name} className="w-12 h-12 object-cover rounded" />
         <div>
           <p className="font-bold">{item.name}</p>
-          <p className="text-sm">{item.price}</p>
+          <p className="text-sm">{item.price.toLocaleString()} تومان</p>
         </div>
       </div>
       <div className="flex items-center gap-2">
@@ -56,7 +54,7 @@ export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
               <button 
                 onClick={() => handleQuantityChange(1)}
                 className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
-                disabled={isLoading}
+                disabled={isLoading || (item.quantity || 0) >= 99}
               >
                 <ChevronUp size={16} />
               </button>
@@ -64,7 +62,7 @@ export function CartItem({ item, onRemove, onUpdateQuantity }: CartItemProps) {
               <button 
                 onClick={() => handleQuantityChange(-1)}
                 className="p-1 hover:bg-gray-100 rounded disabled:opacity-50"
-                disabled={isLoading}
+                disabled={isLoading || (item.quantity || 0) <= 1}
               >
                 <ChevronDown size={16} />
               </button>

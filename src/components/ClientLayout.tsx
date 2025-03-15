@@ -10,7 +10,7 @@ import {
   removeFromCart
 } from '@/store/cartSlice';
 import { Product } from '@/types/types';
-import axios from 'axios';
+import axios from '@/lib/axios';
 import { SessionProvider } from 'next-auth/react';
 
 interface ClientLayoutProps {

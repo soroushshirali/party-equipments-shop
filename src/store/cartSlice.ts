@@ -1,6 +1,6 @@
 import { createSlice, createAsyncThunk } from '@reduxjs/toolkit';
 import { Product } from '@/types/types';
-import axios from 'axios';
+import axios from '@/lib/axios';
 import { RootState } from './store';
 
 interface CartState {
@@ -76,8 +76,24 @@ export const addToCart = createAsyncThunk(
 
 export const updateQuantity = createAsyncThunk(
   'cart/updateQuantity',
-  async ({ productId, quantity }: { productId: string; quantity: number }) => {
-    return { productId, quantity };
+  async ({ productId, quantity }: { productId: string; quantity: number }, { rejectWithValue }) => {
+    try {
+      // Validate product exists before updating quantity
+      const response = await axios.get(`/api/products/${productId}`);
+      const product = response.data;
+      
+      if (!product) {
+        throw new Error('Product not found');
+      }
+
+      // Ensure quantity is within valid range
+      const validQuantity = Math.max(0, Math.min(quantity, 99));
+      
+      return { productId, quantity: validQuantity };
+    } catch (error) {
+      console.error('Error updating quantity:', error);
+      return rejectWithValue('Failed to update quantity');
+    }
   }
 );
 
@@ -104,7 +120,7 @@ export const finalizeOrder = createAsyncThunk(
       const items = ensureCartObject(state.cart?.items);
       
       if (!items || Object.keys(items).length === 0) {
-        throw new Error('Cart is empty');
+        throw new Error('سبد خرید خالی است');
       }
 
       // Get user info from localStorage
@@ -112,7 +128,7 @@ export const finalizeOrder = createAsyncThunk(
       const userData = userDataStr ? JSON.parse(userDataStr) : null;
       
       if (!userData || !userData.uid || !userData.email) {
-        throw new Error('User not authenticated');
+        throw new Error('لطفا ابتدا وارد حساب کاربری خود شوید');
       }
 
       // Fetch all products in cart
@@ -121,8 +137,7 @@ export const finalizeOrder = createAsyncThunk(
           const response = await axios.get(`/api/products/${id}`);
           const product = response.data;
           if (!product || !product.name || !product.price) {
-            console.error(`Invalid product data for ${id}:`, product);
-            return null;
+            throw new Error(`محصول با شناسه ${id} یافت نشد`);
           }
           return {
             productId: id,
@@ -131,8 +146,7 @@ export const finalizeOrder = createAsyncThunk(
             price: product.price
           };
         } catch (error) {
-          console.error(`Failed to fetch product ${id}:`, error);
-          return null;
+          throw new Error(`خطا در دریافت اطلاعات محصول: ${error instanceof Error ? error.message : 'خطای ناشناخته'}`);
         }
       });
 
@@ -147,7 +161,7 @@ export const finalizeOrder = createAsyncThunk(
       );
       
       if (validCartItems.length === 0) {
-        throw new Error('No valid items in cart');
+        throw new Error('هیچ محصول معتبری در سبد خرید وجود ندارد');
       }
 
       const total = validCartItems.reduce((sum, item) => {
@@ -166,16 +180,17 @@ export const finalizeOrder = createAsyncThunk(
       });
 
       if (!response.data) {
-        throw new Error('Failed to create order');
+        throw new Error('خطا در ثبت سفارش');
       }
 
       localStorage.removeItem('cart');
       return true;
     } catch (error) {
+      console.error('Error in finalizeOrder:', error);
       if (error instanceof Error) {
         return rejectWithValue(error.message);
       }
-      return rejectWithValue('Failed to create order');
+      return rejectWithValue('خطا در ثبت سفارش');
     }
   }
 );
@@ -225,6 +240,7 @@ const cartSlice = createSlice({
       // Update quantity
       .addCase(updateQuantity.pending, (state, action) => {
         state.loadingItemId = action.meta.arg.productId;
+        state.error = null;
       })
       .addCase(updateQuantity.fulfilled, (state, action) => {
         const { productId, quantity } = action.payload;
@@ -234,7 +250,12 @@ const cartSlice = createSlice({
           delete state.items[productId];
         }
         state.loadingItemId = null;
+        state.error = null;
         saveCartToLocalStorage(state.items);
+      })
+      .addCase(updateQuantity.rejected, (state, action) => {
+        state.loadingItemId = null;
+        state.error = action.payload as string;
       })
       
       // Remove from cart
