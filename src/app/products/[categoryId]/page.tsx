@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { CircularProgress, Typography, Card, CardContent, Button, Grid } from '@mui/material';
+import { CircularProgress, Typography, Card, CardContent, Button, Grid, Box, Chip } from '@mui/material';
 import { useAppDispatch, useAppSelector } from '@/store/hooks';
 import { addToCart, selectLoadingItemId } from '@/store/cartSlice';
 import { Loader2 } from 'lucide-react';
@@ -83,81 +83,106 @@ export default function ProductsPage() {
   return (
     <div dir="rtl">
       <div className="max-w-6xl mx-auto p-6">
-        <div className="mb-4">
+        <div className="mb-8">
           <Link href="/" className="text-blue-500 hover:underline">
             بازگشت به دسته‌بندی‌ها
           </Link>
         </div>
-        <div className="max-w-6xl mx-auto p-6">
-          <Typography variant="h4" className="mb-6">
+
+        <Box className="mb-12 pb-6 border-b">
+          <Typography variant="h4" component="h1" className="mb-2">
             {categoryTitle || 'محصولات'}
           </Typography>
+          <Typography variant="body1" color="text.secondary">
+            مشاهده تمامی محصولات در دسته {categoryTitle}
+          </Typography>
+        </Box>
           
-          {products.length === 0 ? (
-            <Typography variant="h6" className="text-center">
-              محصولی در این دسته‌بندی یافت نشد
-            </Typography>
-          ) : (
-            <Grid container spacing={4}>
-              {products.map((product) => (
-                <Grid item xs={12} sm={6} md={4} key={product.id}>
-                  <Card className="h-full flex flex-col">
-                    <div className="relative pt-[100%]">
-                      <img
-                        src={product.image}
-                        alt={product.name}
-                        className="absolute top-0 left-0 w-full h-full object-cover"
-                      />
-                    </div>
-                    <CardContent className="flex-grow flex flex-col">
-                      <Link 
-                        href={`/products/${categoryId}/${product.id}`}
-                        className="text-xl font-bold text-blue-600 hover:text-blue-800 mb-2 block"
-                      >
-                        {product.name}
-                      </Link>
+        {products.length === 0 ? (
+          <Typography variant="h6" className="text-center">
+            محصولی در این دسته‌بندی یافت نشد
+          </Typography>
+        ) : (
+          <Grid container spacing={4}>
+            {products.map((product) => (
+              <Grid item xs={12} sm={6} md={4} key={product.id}>
+                <Card className="h-full flex flex-col">
+                  <div className="relative pt-[100%]">
+                    <img
+                      src={product.image}
+                      alt={product.name}
+                      className="absolute top-0 left-0 w-full h-full object-cover"
+                    />
+                  </div>
+                  <CardContent className="flex-grow flex flex-col">
+                    <Link 
+                      href={`/products/${categoryId}/${product.id}`}
+                      className="text-xl font-bold text-blue-600 hover:text-blue-800 mb-2 block"
+                    >
+                      {product.name}
+                    </Link>
 
-                      {product.description && (
-                        <Typography variant="body2" color="text.secondary" className="mb-2">
-                          {product.description}
-                        </Typography>
-                      )}
+                    {product.specs && (
+                      <div className="flex flex-wrap gap-2 mb-3">
+                        {(product.specs.length || product.specs.width || product.specs.height) && (
+                          <Chip 
+                            size="small" 
+                            label={`ابعاد: ${product.specs.length || '-'} × ${product.specs.width || '-'} × ${product.specs.height || '-'} سانتی‌متر`}
+                            className="bg-gray-100"
+                          />
+                        )}
+                        {product.specs.weight && (
+                          <Chip 
+                            size="small" 
+                            label={`وزن: ${product.specs.weight} کیلوگرم`}
+                            className="bg-gray-100"
+                          />
+                        )}
+                      </div>
+                    )}
 
-                      <div className="mt-auto">
-                        <Typography variant="h6" className="mb-2">
-                          {product.price.toLocaleString()} تومان
-                        </Typography>
+                    {product.description && (
+                      <Typography variant="body2" color="text.secondary" className="mb-2">
+                        {product.description.length > 100 
+                          ? `${product.description.substring(0, 100)}...` 
+                          : product.description}
+                      </Typography>
+                    )}
 
-                        <div className="grid grid-cols-2 gap-2">
-                          <Link href={`/products/${categoryId}/${product.id}`}>
-                            <Button 
-                              variant="outlined" 
-                              fullWidth
-                            >
-                              مشاهده جزئیات
-                            </Button>
-                          </Link>
-                          <Button
-                            variant="contained"
-                            onClick={() => handleAddToCart(product)}
-                            disabled={loadingItemId === product.id}
+                    <div className="mt-auto">
+                      <Typography variant="h6" className="mb-2">
+                        {product.price.toLocaleString()} تومان
+                      </Typography>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <Link href={`/products/${categoryId}/${product.id}`}>
+                          <Button 
+                            variant="outlined" 
                             fullWidth
                           >
-                            {loadingItemId === product.id ? (
-                              <Loader2 className="w-4 h-4 animate-spin" />
-                            ) : (
-                              'افزودن به سبد'
-                            )}
+                            مشاهده جزئیات
                           </Button>
-                        </div>
+                        </Link>
+                        <Button
+                          variant="contained"
+                          onClick={() => handleAddToCart(product)}
+                          disabled={loadingItemId === product.id}
+                          fullWidth
+                        >
+                          {loadingItemId === product.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            'افزودن به سبد'
+                          )}
+                        </Button>
                       </div>
-                    </CardContent>
-                  </Card>
-                </Grid>
-              ))}
-            </Grid>
-          )}
-        </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </Grid>
+            ))}
+          </Grid>
+        )}
       </div>
     </div>
   );

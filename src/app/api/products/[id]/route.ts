@@ -25,10 +25,12 @@ export async function GET(request: Request, { params }: { params: { id: string }
       name: product.name,
       price: product.price,
       image: product.image,
+      originalImage: product.originalImage || product.image,
       description: product.description,
       categoryId: product.categoryId,
       category: product.category,
-      quantity: product.quantity
+      quantity: product.quantity,
+      specs: product.specs
     };
     
     return NextResponse.json(transformedProduct);
@@ -86,10 +88,12 @@ export async function PUT(
       name: updatedProduct.name,
       price: updatedProduct.price,
       image: updatedProduct.image,
+      originalImage: updatedProduct.originalImage || updatedProduct.image,
       description: updatedProduct.description,
       categoryId: updatedProduct.categoryId,
       category: updatedProduct.category,
-      quantity: updatedProduct.quantity
+      quantity: updatedProduct.quantity,
+      specs: updatedProduct.specs
     };
 
     return NextResponse.json(transformedProduct);

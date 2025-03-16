@@ -5,12 +5,19 @@ export interface ProductDocument extends mongoose.Document {
   description: string;
   price: number;
   image: string;
+  originalImage: string;
   categoryId: string;
   category: {
     id: string;
     title: string;
   };
   quantity: number;
+  specs: {
+    length: number;
+    width: number;
+    height: number;
+    weight: number;
+  };
   createdAt: Date;
   updatedAt: Date;
 }
@@ -39,6 +46,9 @@ const productSchema = new mongoose.Schema<ProductDocument>(
     image: {
       type: String,
     },
+    originalImage: {
+      type: String,
+    },
     categoryId: {
       type: String,
       required: [true, 'دسته‌بندی محصول الزامی است'],
@@ -52,6 +62,12 @@ const productSchema = new mongoose.Schema<ProductDocument>(
       default: 0,
       min: [0, 'موجودی نمی‌تواند منفی باشد'],
     },
+    specs: {
+      length: { type: Number, default: 0 },
+      width: { type: Number, default: 0 },
+      height: { type: Number, default: 0 },
+      weight: { type: Number, default: 0 }
+    }
   },
   {
     timestamps: true,
