@@ -329,7 +329,7 @@ export default function CategoryManagement() {
             onClick={() => handleAddItem(group)}
             className="mb-4"
           >
-            افزودن آیتم جدید
+            افزودن دسته بندی جدید
           </Button>
 
           <TableContainer component={Paper}>
@@ -432,7 +432,7 @@ export default function CategoryManagement() {
         fullWidth
       >
         <DialogTitle>
-          {editingItem ? 'ویرایش آیتم' : 'افزودن آیتم جدید'}
+          {editingItem ? 'ویرایش دسته بندی' : 'افزودن دسته بندی جدید'}
         </DialogTitle>
         <DialogContent sx={{ 
           minHeight: '40vh',
