@@ -1,3 +1,5 @@
+docker build -t ghcr.io/soroushshirali/party-equipments-shop:latest .
+docker push ghcr.io/soroushshirali/party-equipments-shop:latest
 # Script configuration
 $GITHUB_USERNAME = "soroushshirali"
 $REPOSITORY_NAME = "party-equipments-shop"

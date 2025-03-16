@@ -94,27 +94,37 @@ export default function ProductDetailsPage() {
             <div className="space-y-4">
               <h1 className="text-2xl font-bold">{product.name}</h1>
               
-              <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-semibold mb-4">مشخصات فنی:</h3>
-                <div className="space-y-2">
-                  <p className="text-gray-600 flex justify-between">
-                    <span>طول:</span>
-                    <span className="text-black">{product.specs.length} سانتی‌متر</span>
-                  </p>
-                  <p className="text-gray-600 flex justify-between">
-                    <span>عرض:</span>
-                    <span className="text-black">{product.specs.width} سانتی‌متر</span>
-                  </p>
-                  <p className="text-gray-600 flex justify-between">
-                    <span>ارتفاع:</span>
-                    <span className="text-black">{product.specs.height} سانتی‌متر</span>
-                  </p>
-                  <p className="text-gray-600 flex justify-between">
-                    <span>وزن:</span>
-                    <span className="text-black">{product.specs.weight} کیلوگرم</span>
-                  </p>
+              {product.specs ? (
+                <div className="bg-gray-50 p-4 rounded-lg">
+                  <h3 className="font-semibold mb-4">مشخصات فنی:</h3>
+                  <div className="space-y-2">
+                    {product.specs.length && (
+                      <p className="text-gray-600 flex justify-between">
+                        <span>طول:</span>
+                        <span className="text-black">{product.specs.length} سانتی‌متر</span>
+                      </p>
+                    )}
+                    {product.specs.width && (
+                      <p className="text-gray-600 flex justify-between">
+                        <span>عرض:</span>
+                        <span className="text-black">{product.specs.width} سانتی‌متر</span>
+                      </p>
+                    )}
+                    {product.specs.height && (
+                      <p className="text-gray-600 flex justify-between">
+                        <span>ارتفاع:</span>
+                        <span className="text-black">{product.specs.height} سانتی‌متر</span>
+                      </p>
+                    )}
+                    {product.specs.weight && (
+                      <p className="text-gray-600 flex justify-between">
+                        <span>وزن:</span>
+                        <span className="text-black">{product.specs.weight} کیلوگرم</span>
+                      </p>
+                    )}
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               <div className="flex justify-between items-center">
                 <span className="text-2xl font-bold">{product.price.toLocaleString()} تومان</span>
