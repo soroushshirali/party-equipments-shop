@@ -53,10 +53,8 @@ export const Cart = ({ items, onRemove, onUpdateQuantity, isOpen, onToggle }: Ca
         }))
       });
       
-      // Clear the cart after successful order
-      for (const item of items) {
-        await onRemove(item.id);
-      }
+      // Clear the cart after successful order - all at once
+      await Promise.all(items.map(item => onRemove(item.id)));
       
       // Close the cart
       onToggle();

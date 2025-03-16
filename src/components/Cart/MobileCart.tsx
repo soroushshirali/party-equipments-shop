@@ -68,10 +68,8 @@ export const MobileCart = ({ isOpen, onClose, items }: MobileCartProps) => {
         }))
       });
       
-      // Clear the cart after successful order
-      for (const item of items) {
-        await dispatch(removeFromCart(item.id)).unwrap();
-      }
+      // Clear the cart after successful order - all at once
+      await Promise.all(items.map(item => dispatch(removeFromCart(item.id)).unwrap()));
       
       // Show success message before closing the cart
       showNotification(
@@ -133,7 +131,7 @@ export const MobileCart = ({ isOpen, onClose, items }: MobileCartProps) => {
                 {isSubmitting ? (
                   <Loader2 className="w-4 h-4 animate-spin" />
                 ) : (
-                  'ارسال سفارش'
+                  'ثبت سفارش'
                 )}
               </Button>
             </div>

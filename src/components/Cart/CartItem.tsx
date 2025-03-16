@@ -10,6 +10,8 @@ import {
 
 interface CartItemProps {
   item: Product;
+  onRemove?: (id: string) => Promise<void>;
+  onUpdateQuantity?: (id: string, quantity: number) => Promise<void>;
 }
 
 export function CartItem({ item }: CartItemProps) {

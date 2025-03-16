@@ -11,7 +11,8 @@ import axios from 'axios';
 import { Product } from '@/types/types';
 
 export default function ProductsPage() {
-  const { categoryId } = useParams();
+  const params = useParams() as { categoryId: string };
+  const { categoryId } = params;
   const dispatch = useAppDispatch();
   const loadingItemId = useAppSelector(selectLoadingItemId);
   const [products, setProducts] = useState<Product[]>([]);
