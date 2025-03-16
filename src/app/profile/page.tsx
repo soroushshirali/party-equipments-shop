@@ -11,7 +11,9 @@ import {
   Dialog,
   DialogTitle,
   DialogContent,
-  DialogActions
+  DialogActions,
+  Box,
+  Divider
 } from '@mui/material';
 import axios from '@/lib/axios';
 
@@ -87,38 +89,61 @@ export default function ProfilePage() {
   }
 
   return (
-    <div className="container mx-auto p-4" dir="rtl">
-      <Paper className="p-6 max-w-lg mx-auto">
-        <Typography variant="h4" className="mb-6">پروفایل کاربری</Typography>
-        
-        <div className="space-y-4">
-          <div>
-            <Typography variant="subtitle1" className="text-gray-600">نام و نام خانوادگی</Typography>
-            <Typography>{session.user.name}</Typography>
-          </div>
+    <div className="min-h-screen bg-gray-50 py-12" dir="rtl">
+      <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+        <Paper className="max-w-2xl mx-auto rounded-lg shadow-lg overflow-hidden">
+          <Box className="bg-primary-600 px-6 py-4">
+            <Typography variant="h5" className="text-white font-bold">
+              پروفایل کاربری
+            </Typography>
+          </Box>
           
-          <div>
-            <Typography variant="subtitle1" className="text-gray-600">ایمیل</Typography>
-            <Typography>{session.user.email}</Typography>
-          </div>
+          <Box className="p-6 space-y-6">
+            <div className="space-y-4">
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <Typography variant="subtitle2" className="text-gray-500 mb-1">
+                  نام و نام خانوادگی
+                </Typography>
+                <Typography variant="body1" className="font-medium">
+                  {session.user.name}
+                </Typography>
+              </div>
+              
+              <div className="bg-gray-50 p-4 rounded-lg">
+                <Typography variant="subtitle2" className="text-gray-500 mb-1">
+                  شماره تماس
+                </Typography>
+                <Typography variant="body1" className="font-medium" dir="ltr">
+                  {session.user.phoneNumber || 'شماره تماسی ثبت نشده است'}
+                </Typography>
+              </div>
+            </div>
 
-          <div className="pt-4 space-x-4">
-            <Button
-              variant="contained"
-              onClick={() => setIsChangePasswordOpen(true)}
-            >
-              تغییر رمز عبور
-            </Button>
-            <Button
-              variant="outlined"
-              color="error"
-              onClick={handleSignOut}
-            >
-              خروج از حساب کاربری
-            </Button>
-          </div>
-        </div>
-      </Paper>
+            <Divider className="my-6" />
+
+            <div className="flex flex-col sm:flex-row gap-4">
+              <Button
+                variant="contained"
+                color="primary"
+                onClick={() => setIsChangePasswordOpen(true)}
+                className="flex-1"
+                size="large"
+              >
+                تغییر رمز عبور
+              </Button>
+              <Button
+                variant="outlined"
+                color="error"
+                onClick={handleSignOut}
+                className="flex-1"
+                size="large"
+              >
+                خروج از حساب کاربری
+              </Button>
+            </div>
+          </Box>
+        </Paper>
+      </div>
 
       {/* Change Password Dialog */}
       <Dialog
@@ -127,14 +152,22 @@ export default function ProfilePage() {
         maxWidth="sm"
         fullWidth
       >
-        <DialogTitle>تغییر رمز عبور</DialogTitle>
+        <DialogTitle>
+          <Typography variant="h6" className="font-bold">
+            تغییر رمز عبور
+          </Typography>
+        </DialogTitle>
         <form onSubmit={handlePasswordChange}>
           <DialogContent>
             {error && (
-              <Typography color="error" className="mb-4">{error}</Typography>
+              <div className="bg-red-50 text-red-700 p-3 rounded-lg mb-4">
+                {error}
+              </div>
             )}
             {success && (
-              <Typography color="success" className="mb-4">{success}</Typography>
+              <div className="bg-green-50 text-green-700 p-3 rounded-lg mb-4">
+                {success}
+              </div>
             )}
             <div className="space-y-4">
               <TextField
@@ -148,6 +181,7 @@ export default function ProfilePage() {
                 }))}
                 required
                 dir="ltr"
+                variant="outlined"
               />
               <TextField
                 fullWidth
@@ -160,6 +194,7 @@ export default function ProfilePage() {
                 }))}
                 required
                 dir="ltr"
+                variant="outlined"
               />
               <TextField
                 fullWidth
@@ -172,15 +207,23 @@ export default function ProfilePage() {
                 }))}
                 required
                 dir="ltr"
+                variant="outlined"
               />
             </div>
           </DialogContent>
-          <DialogActions>
-            <Button onClick={() => setIsChangePasswordOpen(false)}>انصراف</Button>
+          <DialogActions className="p-4">
+            <Button 
+              onClick={() => setIsChangePasswordOpen(false)}
+              variant="outlined"
+              size="large"
+            >
+              انصراف
+            </Button>
             <Button
               type="submit"
               variant="contained"
               disabled={loading}
+              size="large"
             >
               {loading ? <CircularProgress size={24} /> : 'تغییر رمز عبور'}
             </Button>
